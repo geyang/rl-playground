@@ -6,8 +6,7 @@ import time
 import scipy.signal
 import playground.algos.vpg.core as core
 from playground.utils.logx import EpochLogger
-from playground.utils.mpi_torch import average_gradients, sync_all_params, setup_pytorch_for_mpi
-from playground.utils.mpi_tools import mpi_fork, proc_id, mpi_statistics_scalar, num_procs
+from playground import mpi
 
 
 class VPGBuffer:
@@ -78,7 +77,7 @@ class VPGBuffer:
         assert self.ptr == self.max_size  # buffer has to be full before you can get
         self.ptr, self.path_start_idx = 0, 0
         # the next two lines implement the advantage normalization trick
-        adv_mean, adv_std = mpi_statistics_scalar(self.adv_buf)
+        adv_mean, adv_std = mpi.tools.mpi_statistics_scalar(self.adv_buf)
         self.adv_buf = (self.adv_buf - adv_mean) / adv_std
         return [self.obs_buf, self.act_buf, self.adv_buf, self.ret_buf, self.logp_buf]
 
@@ -189,12 +188,12 @@ def vpg(
 
     """
 
-    setup_pytorch_for_mpi()
+    mpi.torch.setup()
 
     logger = EpochLogger(**logger_kwargs)
     logger.save_config(locals())
 
-    seed += 10000 * proc_id()
+    seed += 10000 * mpi.tools.proc_id()
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -209,7 +208,7 @@ def vpg(
     actor_critic = actor_critic(in_features=obs_dim[0], **ac_kwargs)
 
     # Experience buffer
-    local_steps_per_epoch = int(steps_per_epoch / num_procs())
+    local_steps_per_epoch = int(steps_per_epoch / mpi.tools.num_procs())
     buf = VPGBuffer(obs_dim, act_dim, local_steps_per_epoch, gamma, lam)
 
     # Count variables
@@ -224,7 +223,7 @@ def vpg(
     train_v = torch.optim.Adam(actor_critic.value_function.parameters(), lr=vf_lr)
 
     # Sync params across processes
-    sync_all_params(actor_critic.parameters())
+    mpi.torch.sync_params(actor_critic.parameters())
 
     def update():
         obs, act, adv, ret, logp_old = [torch.Tensor(x) for x in buf.get()]
@@ -239,7 +238,7 @@ def vpg(
         # Policy gradient step
         train_pi.zero_grad()
         pi_loss.backward()
-        average_gradients(train_pi.param_groups)
+        mpi.torch.average_grad(train_pi.param_groups)
         train_pi.step()
 
         # Value function learning
@@ -254,7 +253,7 @@ def vpg(
             # Value function gradient step
             train_v.zero_grad()
             v_loss.backward()
-            average_gradients(train_v.param_groups)
+            mpi.torch.average_grad(train_v.param_groups)
             train_v.step()
 
         # Log changes from update
@@ -271,7 +270,7 @@ def vpg(
             DeltaLossV=(v_l_new - v_l_old),
         )
 
-    start_time = time.time()
+    logger.start('start', 'epoch')
     o, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
 
     # Main loop: collect experience in env and update/log each epoch
@@ -315,18 +314,18 @@ def vpg(
         update()
 
         # Log info about epoch
-        logger.log_tabular("Epoch", epoch)
+        logger.log_tabular("epoch", epoch)
         logger.log_tabular("EpRet", with_min_and_max=True)
         logger.log_tabular("EpLen", average_only=True)
         logger.log_tabular("VVals", with_min_and_max=True)
-        logger.log_tabular("TotalEnvInteracts", (epoch + 1) * steps_per_epoch)
+        logger.log_tabular("envSteps", (epoch + 1) * steps_per_epoch)
         logger.log_tabular("LossPi", average_only=True)
         logger.log_tabular("LossV", average_only=True)
         logger.log_tabular("DeltaLossPi", average_only=True)
         logger.log_tabular("DeltaLossV", average_only=True)
         logger.log_tabular("Entropy", average_only=True)
         logger.log_tabular("KL", average_only=True)
-        logger.log_tabular("Time", time.time() - start_time)
+        logger.log_tabular("time", logger.since('start'))
         logger.dump_tabular()
 
 
@@ -345,7 +344,7 @@ if __name__ == "__main__":
     parser.add_argument("--exp_name", type=str, default="vpg")
     args = parser.parse_args()
 
-    mpi_fork(args.cpu)  # run parallel code with mpi
+    mpi.tools.fork(args.cpu)  # run parallel code with mpi
 
     from playground.utils.run_utils import setup_logger_kwargs
 

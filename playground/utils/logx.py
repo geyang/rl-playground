@@ -7,14 +7,13 @@ Logs to a tab-separated-values file (path/to/output_directory/progress.txt)
 """
 import json
 import joblib
-import shutil
 import numpy as np
 import torch
 import os.path as osp
 import time
 import atexit
 import os
-from playground.utils.mpi_tools import proc_id, mpi_statistics_scalar
+from playground.mpi.tools import proc_id, mpi_statistics_scalar
 from playground.utils.serialization_utils import convert_json
 import wandb
 
@@ -206,7 +205,7 @@ class Logger:
             print("-" * n_slashes)
             for i, key in enumerate(self.log_headers):
                 val = self.log_current_row.get(key, "")
-                total_env_interacts = self.log_current_row.get("TotalEnvInteracts", "")
+                total_env_interacts = self.log_current_row.get("envSteps", "")
                 wandb.log({key: val}, step=total_env_interacts, commit=(i+1)==len(self.log_headers))
                 valstr = "%8.3g" % val if hasattr(val, "__float__") else val
                 print(fmt % (key, valstr))

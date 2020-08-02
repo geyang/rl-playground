@@ -5,10 +5,9 @@ from playground.user_config import (
     WAIT_BEFORE_LAUNCH,
 )
 from playground.utils.logx import colorize
-from playground.utils.mpi_tools import mpi_fork
+from playground.mpi.tools import fork
 from playground.utils.serialization_utils import convert_json
 import base64
-from copy import deepcopy
 import cloudpickle
 import json
 import numpy as np
@@ -165,7 +164,7 @@ def call_experiment(
             del kwargs["env_name"]
 
         # Fork into multiple processes
-        mpi_fork(num_cpu)
+        fork(num_cpu)
 
         # Run thunk
         thunk(**kwargs)

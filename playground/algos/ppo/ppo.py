@@ -2,18 +2,9 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import gym
-import time
 import scipy.signal
 import playground.algos.ppo.core as core
-from playground.utils.logx import EpochLogger
-from playground.utils.mpi_torch import average_gradients, sync_all_params, setup_pytorch_for_mpi
-from playground.utils.mpi_tools import (
-    mpi_fork,
-    mpi_avg,
-    proc_id,
-    mpi_statistics_scalar,
-    num_procs,
-)
+from playground import mpi
 
 
 class PPOBuffer:
@@ -84,7 +75,7 @@ class PPOBuffer:
         assert self.ptr == self.max_size  # buffer has to be full before you can get
         self.ptr, self.path_start_idx = 0, 0
         # the next two lines implement the advantage normalization trick
-        adv_mean, adv_std = mpi_statistics_scalar(self.adv_buf)
+        adv_mean, adv_std = mpi.tools.mpi_statistics_scalar(self.adv_buf)
         self.adv_buf = (self.adv_buf - adv_mean) / adv_std
         return [self.obs_buf, self.act_buf, self.adv_buf, self.ret_buf, self.logp_buf]
 
@@ -121,23 +112,22 @@ with early stopping based on approximate KL
 
 
 def ppo(
-    env_fn,
-    actor_critic=core.ActorCritic,
-    ac_kwargs=dict(),
-    seed=0,
-    steps_per_epoch=4000,
-    epochs=50,
-    gamma=0.99,
-    clip_ratio=0.2,
-    pi_lr=3e-4,
-    vf_lr=1e-3,
-    train_pi_iters=80,
-    train_v_iters=80,
-    lam=0.97,
-    max_ep_len=1000,
-    target_kl=0.01,
-    logger_kwargs=dict(),
-    save_freq=10,
+        env_fn,
+        actor_critic=core.ActorCritic,
+        ac_kwargs=dict(),
+        seed=0,
+        steps_per_epoch=4000,
+        epochs=50,
+        gamma=0.99,
+        clip_ratio=0.2,
+        pi_lr=3e-4,
+        vf_lr=1e-3,
+        train_pi_iters=80,
+        train_v_iters=80,
+        lam=0.97,
+        max_ep_len=1000,
+        target_kl=0.01,
+        save_freq=10,
 ):
     """
 
@@ -205,19 +195,23 @@ def ppo(
             between new and old policies after an update. This will get used
             for early stopping. (Usually small, 0.01 or 0.05.)
 
-        logger_kwargs (dict): Keyword args for EpochLogger.
-
         save_freq (int): How often (in terms of gap between epochs) to save
             the current policy and value function.
 
     """
+    from ml_logger import logger
+    # logger.log_params(kwargs=locals())
 
-    setup_pytorch_for_mpi()
+    if mpi.tools.is_primary():
+        logger.log_text("""
+                        charts:
+                        - yKey: EpRet/mean
+                          xKey: epoch
+                        """, ".charts.yml", True)
 
-    logger = EpochLogger(**logger_kwargs)
-    logger.save_config(locals())
+    mpi.torch.setup()
 
-    seed += 10000 * proc_id()
+    seed += 10000 * mpi.tools.proc_id()
     torch.manual_seed(seed)
     np.random.seed(seed)
 
@@ -232,22 +226,21 @@ def ppo(
     actor_critic = actor_critic(in_features=obs_dim[0], **ac_kwargs)
 
     # Experience buffer
-    local_steps_per_epoch = int(steps_per_epoch / num_procs())
-    buf = PPOBuffer(obs_dim, act_dim, local_steps_per_epoch, gamma, lam)
+    mpi_steps_per_epoch = int(steps_per_epoch * mpi.tools.num_procs())
+    buf = PPOBuffer(obs_dim, act_dim, steps_per_epoch, gamma, lam)
 
     # Count variables
-    var_counts = tuple(
+    logger.log("Number of parameters: \tpi: {}, \tv: {}".format(*(
         core.count_vars(module)
         for module in [actor_critic.policy, actor_critic.value_function]
-    )
-    logger.log("\nNumber of parameters: \t pi: %d, \t v: %d\n" % var_counts)
+    )))
 
     # Optimizers
     train_pi = torch.optim.Adam(actor_critic.policy.parameters(), lr=pi_lr)
     train_v = torch.optim.Adam(actor_critic.value_function.parameters(), lr=vf_lr)
 
     # Sync params across processes
-    sync_all_params(actor_critic.parameters())
+    mpi.torch.sync_params(actor_critic.parameters())
 
     def update():
         obs, act, adv, ret, logp_old = [torch.Tensor(x) for x in buf.get()]
@@ -272,16 +265,18 @@ def ppo(
             # Policy gradient step
             train_pi.zero_grad()
             pi_loss.backward()
-            average_gradients(train_pi.param_groups)
+            mpi.torch.average_grad(train_pi.param_groups)
             train_pi.step()
 
             _, logp, _ = actor_critic.policy(obs, act)
             kl = (logp_old - logp).mean()
-            kl = mpi_avg(kl.item())
+            kl = mpi.tools.mpi_avg(kl.item())
             if kl > 1.5 * target_kl:
                 logger.log("Early stopping at step %d due to reaching max kl." % i)
                 break
-        logger.store(StopIter=i)
+
+        if mpi.tools.is_primary():
+            logger.store(StopIter=i)
 
         # Training value function
         v = actor_critic.value_function(obs)
@@ -295,7 +290,7 @@ def ppo(
             # Value function gradient step
             train_v.zero_grad()
             v_loss.backward()
-            average_gradients(train_v.param_groups)
+            mpi.torch.average_grad(train_v.param_groups)
             train_v.step()
 
         # Log changes from update
@@ -307,45 +302,43 @@ def ppo(
         kl = (logp_old - logp).mean()  # a sample estimate for KL-divergence
         clipped = (ratio > (1 + clip_ratio)) | (ratio < (1 - clip_ratio))
         cf = (clipped.float()).mean()
-        logger.store(
-            LossPi=pi_l_old,
-            LossV=v_l_old,
-            KL=kl,
-            Entropy=ent,
-            ClipFrac=cf,
-            DeltaLossPi=(pi_l_new - pi_l_old),
-            DeltaLossV=(v_l_new - v_l_old),
-        )
+        if mpi.tools.is_primary():
+            logger.store(
+                LossPi=pi_l_old,
+                LossV=v_l_old,
+                KL=kl,
+                Entropy=ent,
+                ClipFrac=cf,
+                DeltaLossPi=(pi_l_new - pi_l_old),
+                DeltaLossV=(v_l_new - v_l_old),
+            )
 
-    start_time = time.time()
+    logger.start('start', 'epoch')
     o, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
 
     # Main loop: collect experience in env and update/log each epoch
     for epoch in range(epochs):
         actor_critic.eval()
-        for t in range(local_steps_per_epoch):
+        for t in range(steps_per_epoch):
             a, _, logp_t, v_t = actor_critic(torch.Tensor(o.reshape(1, -1)))
 
             # save and log
             buf.store(o, a.detach().numpy(), r, v_t.item(), logp_t.detach().numpy())
-            logger.store(VVals=v_t)
+            if mpi.tools.is_primary():
+                logger.store(VVals=v_t)
 
             o, r, d, _ = env.step(a.detach().numpy()[0])
             ep_ret += r
             ep_len += 1
 
-            terminal = d or (ep_len == max_ep_len)
-            if terminal or (t == local_steps_per_epoch - 1):
-                if not (terminal):
+            terminal = d or ep_len == max_ep_len
+            if terminal or t == steps_per_epoch - 1:
+                if not terminal:
                     print("Warning: trajectory cut off by epoch at %d steps." % ep_len)
                 # if trajectory didn't reach terminal state, bootstrap value target
-                last_val = (
-                    r
-                    if d
-                    else actor_critic.value_function(
-                        torch.Tensor(o.reshape(1, -1))
-                    ).item()
-                )
+                last_val = r if d else actor_critic.value_function(
+                    torch.Tensor(o.reshape(1, -1))).item()
+
                 buf.finish_path(last_val)
                 if terminal:
                     # only save EpRet / EpLen if trajectory finished
@@ -353,60 +346,32 @@ def ppo(
                 o, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
 
         # Save model
-        if (epoch % save_freq == 0) or (epoch == epochs - 1):
-            logger.save_state({"env": env}, actor_critic, None)
+        # if epoch % save_freq == 0 or epoch == epochs - 1:
+        #     logger.save_pkl({"env": env}, actor_critic, None)
 
         # Perform PPO update!
         actor_critic.train()
         update()
 
         # Log info about epoch
-        logger.log_tabular("Epoch", epoch)
-        logger.log_tabular("EpRet", with_min_and_max=True)
-        logger.log_tabular("EpLen", average_only=True)
-        logger.log_tabular("VVals", with_min_and_max=True)
-        logger.log_tabular("TotalEnvInteracts", (epoch + 1) * steps_per_epoch)
-        logger.log_tabular("LossPi", average_only=True)
-        logger.log_tabular("LossV", average_only=True)
-        logger.log_tabular("DeltaLossPi", average_only=True)
-        logger.log_tabular("DeltaLossV", average_only=True)
-        logger.log_tabular("Entropy", average_only=True)
-        logger.log_tabular("KL", average_only=True)
-        logger.log_tabular("ClipFrac", average_only=True)
-        logger.log_tabular("StopIter", average_only=True)
-        logger.log_tabular("Time", time.time() - start_time)
-        logger.dump_tabular()
+        if mpi.tools.is_primary():
+            logger.log_metrics_summary(
+                key_values={"epoch": epoch,
+                            "envSteps": (epoch + 1) * mpi_steps_per_epoch,
+                            "time": logger.since('start')},
+                key_stats={"EpRet": "min_max", "EpLen": "mean", "VVals": "min_max",
+                           "LossPi": "mean", "LossV": "mean", "DeltaLossPi": "mean",
+                           "DeltaLossV": "mean", "Entropy": "mean", "KL": "mean",
+                           "ClipFrac": "mean", "StopIter": "mean", })
 
 
 if __name__ == "__main__":
-    import argparse
+    mpi.tools.fork(16)
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--env", type=str, default="HalfCheetah-v2")
-    parser.add_argument("--hid", type=int, default=64)
-    parser.add_argument("--l", type=int, default=2)
-    parser.add_argument("--gamma", type=float, default=0.99)
-    parser.add_argument("--seed", "-s", type=int, default=0)
-    parser.add_argument("--cpu", type=int, default=4)
-    parser.add_argument("--steps", type=int, default=4000)
-    parser.add_argument("--epochs", type=int, default=50)
-    parser.add_argument("--exp_name", type=str, default="ppo")
-    args = parser.parse_args()
-
-    mpi_fork(args.cpu)  # run parallel code with mpi
-
-    from playground.utils.run_utils import setup_logger_kwargs
-
-    logger_kwargs = setup_logger_kwargs(args.exp_name, args.seed)
-
-    ppo(
-        lambda: gym.make(args.env),
+    ppo(lambda: gym.make("HalfCheetah-v2"),
         actor_critic=core.ActorCritic,
-        ac_kwargs=dict(hidden_sizes=[args.hid] * args.l),
-        gamma=args.gamma,
-        seed=args.seed,
-        steps_per_epoch=args.steps,
-        epochs=args.epochs,
-        logger_kwargs=logger_kwargs,
-    )
-
+        ac_kwargs=dict(hidden_sizes=[64, ] * 2),
+        gamma=0.99,
+        seed=0,
+        steps_per_epoch=4000,
+        epochs=50)

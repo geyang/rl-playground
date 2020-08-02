@@ -146,16 +146,17 @@ def instr(fn, *ARGS, _job_prefix=None, _job_postfix=None, _job_counter=True,
         import traceback
         from ml_logger import logger
 
-        assert not (args and ARGS), f"can not use position argument at both thunk creation as well as " \
-                                    f"run.\n_args: {args}\nARGS: {ARGS}"
+        assert not (args and ARGS), f"can not use position argument at " \
+                                    f"both thunk creation as well as run.\n" \
+                                    f"_args: {args}\nARGS: {ARGS}"
 
-        import os
         logger.configure(log_directory=RUN.server, prefix=PREFIX, register_experiment=False, max_workers=10)
-        logger.log_params(host=dict(hostname=logger.hostname),
-                          run=dict(status="running",
-                                   startTime=logger.now(),
-                                   job_id=logger.job_id)
-                          )
+        from playground import mpi
+        if not mpi.tools.proc_id():
+            logger.log_params(host=dict(hostname=logger.hostname),
+                              run=dict(status="running",
+                                       startTime=logger.now(),
+                                       job_id=logger.job_id))
 
         import time
         try:

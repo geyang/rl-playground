@@ -1,10 +1,8 @@
 import numpy as np
+import gym
 import torch
 import torch.nn.functional as F
-import gym
-import time
 from playground.algos.dqn import core
-from playground.utils.logx import EpochLogger
 
 
 class ReplayBuffer:
@@ -48,29 +46,27 @@ Deep Q-Network
 
 
 def dqn(
-    env_fn,
-    dqnetwork=core.DQNetwork,
-    ac_kwargs=dict(),
-    seed=0,
-    steps_per_epoch=5000,
-    epochs=100,
-    replay_size=int(1e6),
-    gamma=0.99,
-    min_replay_history=20000,
-    epsilon_decay_period=250000,
-    epsilon_train=0.01,
-    epsilon_eval=0.001,
-    lr=1e-3,
-    max_ep_len=1000,
-    update_period=4,
-    target_update_period=8000,
-    batch_size=100,
-    logger_kwargs=dict(),
-    save_freq=1,
+        env_fn,
+        q_network=core.DQNetwork,
+        ac_kwargs=dict(),
+        seed=0,
+        steps_per_epoch=5000,
+        epochs=100,
+        replay_size=int(1e6),
+        gamma=0.99,
+        min_replay_history=20000,
+        epsilon_decay_period=250000,
+        epsilon_train=0.01,
+        epsilon_eval=0.001,
+        lr=1e-3,
+        max_ep_len=1000,
+        update_period=4,
+        target_update_period=8000,
+        batch_size=100,
+        save_freq=1,
 ):
-
-    logger = EpochLogger(**logger_kwargs)
-    logger.save_config(locals())
+    from ml_logger import logger
+    logger.log_params(kwargs=locals())
 
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -83,10 +79,10 @@ def dqn(
     ac_kwargs["action_space"] = env.action_space
 
     # Main computation graph
-    main = dqnetwork(in_features=obs_dim, **ac_kwargs)
+    main = q_network(in_features=obs_dim, **ac_kwargs)
 
     # Target network
-    target = dqnetwork(in_features=obs_dim, **ac_kwargs)
+    target = q_network(in_features=obs_dim, **ac_kwargs)
 
     # Experience buffer
     replay_buffer = ReplayBuffer(obs_dim=obs_dim, act_dim=act_dim, size=replay_size)
@@ -124,7 +120,7 @@ def dqn(
                 ep_len += 1
             logger.store(TestEpRet=ep_ret, TestEpLen=ep_len)
 
-    start_time = time.time()
+    logger.start('start', 'epoch')
     o, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
     total_steps = steps_per_epoch * epochs
 
@@ -194,20 +190,28 @@ def dqn(
             epoch = t // steps_per_epoch
 
             # Save model
-            if (epoch % save_freq == 0) or (epoch == epochs - 1):
-                logger.save_state({"env": env}, main, None)
+            # if (epoch % save_freq == 0) or (epoch == epochs - 1):
+            #     logger.save_state({"env": env}, main, None)
 
             # Test the performance of the deterministic version of the agent.
             test_agent()
 
             # Log info about epoch
-            logger.log_tabular("Epoch", epoch)
-            logger.log_tabular("EpRet", with_min_and_max=True)
-            logger.log_tabular("TestEpRet", with_min_and_max=True)
-            logger.log_tabular("EpLen", average_only=True)
-            logger.log_tabular("TestEpLen", average_only=True)
-            logger.log_tabular("TotalEnvInteracts", t)
-            logger.log_tabular("QVals", with_min_and_max=True)
-            logger.log_tabular("LossQ", average_only=True)
-            logger.log_tabular("Time", time.time() - start_time)
-            logger.dump_tabular()
+            logger.log_metrics_summary(key_value={"epoch": epoch,
+                                                  "envSteps": t,
+                                                  "time": logger.since('start')},
+                                       key_stats={"EpRet": "min_max",
+                                                  "TestEpRet": "min_max",
+                                                  "EpLen": "mean",
+                                                  "TestEpLen": "mean",
+                                                  "QVals": "min_max",
+                                                  "LossQ": "mean"})
+
+
+if __name__ == '__main__':
+    dqn(lambda: gym.make("LunarLander-v2"),
+        ac_kwargs=dict(hidden_sizes=[64, ] * 2),
+        gamma=0.99,
+        seed=0,
+        steps_per_epoch=4000,
+        epochs=50)

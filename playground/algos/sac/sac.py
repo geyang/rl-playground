@@ -4,7 +4,6 @@ import torch.nn.functional as F
 import gym
 import time
 from playground.algos.sac import core
-from playground.utils.logx import EpochLogger
 
 
 class ReplayBuffer:
@@ -50,23 +49,22 @@ Soft Actor-Critic
 
 
 def sac(
-    env_fn,
-    actor_critic=core.ActorCritic,
-    ac_kwargs=dict(),
-    seed=0,
-    steps_per_epoch=5000,
-    epochs=100,
-    replay_size=int(1e6),
-    gamma=0.99,
-    polyak=0.995,
-    lr=1e-3,
-    alpha=0.2,
-    optimize_alpha=True,
-    batch_size=100,
-    start_steps=10000,
-    max_ep_len=1000,
-    logger_kwargs=dict(),
-    save_freq=1,
+        env_fn,
+        actor_critic=core.ActorCritic,
+        ac_kwargs=dict(),
+        seed=0,
+        steps_per_epoch=5000,
+        epochs=100,
+        replay_size=int(1e6),
+        gamma=0.99,
+        polyak=0.995,
+        lr=1e-3,
+        alpha=0.2,
+        optimize_alpha=True,
+        batch_size=100,
+        start_steps=10000,
+        max_ep_len=1000,
+        save_freq=1,
 ):
     """
 
@@ -149,9 +147,14 @@ def sac(
             the current policy and value function.
 
     """
-
-    logger = EpochLogger(**logger_kwargs)
-    logger.save_config(locals())
+    from ml_logger import logger
+    # logger.log_params(kwargs=locals())
+    logger.log_text("""
+                    charts:
+                    - EpRet/mean
+                    - VVals/mean
+                    - LogPi/mean
+                    """, ".charts.yml", True)
 
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -179,8 +182,8 @@ def sac(
     )
     print(
         (
-            "\nNumber of parameters: \t pi: %d, \t"
-            + "q1: %d, \t q2: %d, \t v: %d, \t total: %d\n"
+                "\nNumber of parameters: \t pi: %d, \t"
+                + "q1: %d, \t q2: %d, \t v: %d, \t total: %d\n"
         )
         % var_counts
     )
@@ -191,9 +194,9 @@ def sac(
 
     # Value train op
     value_params = (
-        list(main.vf_mlp.parameters())
-        + list(main.q1.parameters())
-        + list(main.q2.parameters())
+            list(main.vf_mlp.parameters())
+            + list(main.q1.parameters())
+            + list(main.q2.parameters())
     )
     value_optimizer = torch.optim.Adam(value_params, lr=lr)
 
@@ -220,7 +223,7 @@ def sac(
                 ep_len += 1
             logger.store(TestEpRet=ep_ret, TestEpLen=ep_len)
 
-    start_time = time.time()
+    logger.start('start', 'epoch')
     o, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
     total_steps = steps_per_epoch * epochs
 
@@ -274,7 +277,7 @@ def sac(
                 # Automatic entropy tuning
                 if optimize_alpha:
                     alpha_loss = -(
-                        log_alpha * (logp_pi + target_entropy).detach()
+                            log_alpha * (logp_pi + target_entropy).detach()
                     ).mean()
                     alpha_optimizer.zero_grad()
                     alpha_loss.backward()
@@ -308,7 +311,7 @@ def sac(
 
                 # Polyak averaging for target parameters
                 for p_main, p_target in zip(
-                    main.vf_mlp.parameters(), target.vf_mlp.parameters()
+                        main.vf_mlp.parameters(), target.vf_mlp.parameters()
                 ):
                     p_target.data.copy_(
                         polyak * p_target.data + (1 - polyak) * p_main.data
@@ -323,6 +326,7 @@ def sac(
                     Q2Vals=q2.detach().numpy(),
                     VVals=v.detach().numpy(),
                     LogPi=logp_pi.detach().numpy(),
+                    dtEpoch=logger.split('epoch')
                 )
 
             logger.store(EpRet=ep_ret, EpLen=ep_len)
@@ -333,58 +337,40 @@ def sac(
             epoch = t // steps_per_epoch
 
             # Save model
-            if (epoch % save_freq == 0) or (epoch == epochs - 1):
-                logger.save_state({"env": env}, main, None)
+            # if (epoch % save_freq == 0) or (epoch == epochs - 1):
+            #     logger.save_state({"env": env}, main, None)
 
             # Test the performance of the deterministic version of the agent.
             test_agent()
 
-            # Log info about epoch
-            logger.log_tabular("Epoch", epoch)
-            logger.log_tabular("EpRet", with_min_and_max=True)
-            logger.log_tabular("TestEpRet", with_min_and_max=True)
-            logger.log_tabular("EpLen", average_only=True)
-            logger.log_tabular("TestEpLen", average_only=True)
-            logger.log_tabular("TotalEnvInteracts", t)
-            logger.log_tabular("Q1Vals", with_min_and_max=True)
-            logger.log_tabular("Q2Vals", with_min_and_max=True)
-            logger.log_tabular("VVals", with_min_and_max=True)
-            logger.log_tabular("LogPi", with_min_and_max=True)
-            logger.log_tabular("LossPi", average_only=True)
-            logger.log_tabular("LossQ1", average_only=True)
-            logger.log_tabular("LossQ2", average_only=True)
-            logger.log_tabular("LossV", average_only=True)
+            stats = {
+                "EpRet": "min_max",
+                "TestEpRet": "min_max",
+                "EpLen": "mean",
+                "TestEpLen": "mean",
+                "Q1Vals": "min_max",
+                "Q2Vals": "min_max",
+                "VVals": "min_max",
+                "LogPi": "min_max",
+                "LossPi": "mean",
+                "LossQ1": "mean",
+                "LossQ2": "mean",
+                "LossV": "mean",
+            }
             if optimize_alpha:
-                logger.log_tabular("LossAlpha", average_only=True)
-                logger.log_tabular("Alpha", average_only=True)
-            logger.log_tabular("Time", time.time() - start_time)
-            logger.dump_tabular()
+                stats["LossAlpha"] = "mean"
+                stats["Alpha"] = "mean"
+
+            # Log info about epoch
+            logger.log_metrics_summary(
+                key_values={"epoch": epoch, "envSteps": t, "time": logger.since('start')},
+                key_stats=stats)
 
 
 if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--env", type=str, default="HalfCheetah-v2")
-    parser.add_argument("--hid", type=int, default=300)
-    parser.add_argument("--l", type=int, default=1)
-    parser.add_argument("--gamma", type=float, default=0.99)
-    parser.add_argument("--seed", "-s", type=int, default=0)
-    parser.add_argument("--epochs", type=int, default=50)
-    parser.add_argument("--exp_name", type=str, default="sac")
-    args = parser.parse_args()
-
-    from playground.utils.run_utils import setup_logger_kwargs
-
-    logger_kwargs = setup_logger_kwargs(args.exp_name, args.seed)
-
-    sac(
-        lambda: gym.make(args.env),
+    sac(lambda: gym.make("HalfCheetah-v2"),
         actor_critic=core.ActorCritic,
-        ac_kwargs=dict(hidden_sizes=[args.hid] * args.l),
-        gamma=args.gamma,
-        seed=args.seed,
-        epochs=args.epochs,
-        logger_kwargs=logger_kwargs,
-    )
-
+        ac_kwargs=dict(hidden_sizes=[300] * 2),
+        gamma=0.99,
+        seed=0,
+        epochs=50)

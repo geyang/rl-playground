@@ -1,5 +1,6 @@
 # Algorithms
 import os
+from . import mpi
 from playground.algos.ddpg.ddpg import ddpg
 from playground.algos.ppo.ppo import ppo
 from playground.algos.sac.sac import sac

@@ -8,9 +8,9 @@ import time
 import scipy.signal
 import playground.algos.trpo.core as core
 from playground.utils.logx import EpochLogger
-from playground.utils.mpi_torch import sync_all_params, average_gradients, setup_pytorch_for_mpi
-from playground.utils.mpi_tools import (
-    mpi_fork,
+from playground.mpi.torch import sync_params, average_grad, setup
+from playground.mpi.tools import (
+    fork,
     mpi_avg,
     proc_id,
     mpi_statistics_scalar,
@@ -257,7 +257,7 @@ def trpo(
 
     """
 
-    setup_pytorch_for_mpi()
+    setup()
 
     logger = EpochLogger(**logger_kwargs)
     logger.save_config(locals())
@@ -298,7 +298,7 @@ def trpo(
     train_vf = torch.optim.Adam(actor_critic.value_function.parameters(), lr=vf_lr)
 
     # Sync params across processes
-    sync_all_params(actor_critic.parameters())
+    sync_params(actor_critic.parameters())
 
     def cg(Ax, b):
         """
@@ -384,7 +384,7 @@ def trpo(
             # Value function gradient step
             train_vf.zero_grad()
             v_loss.backward()
-            average_gradients(train_vf.param_groups)
+            average_grad(train_vf.param_groups)
             train_vf.step()
 
         v = actor_critic.value_function(obs)
@@ -399,7 +399,7 @@ def trpo(
             DeltaLossV=(v_l_new - v_l_old),
         )
 
-    start_time = time.time()
+    logger.start('start', 'epoch')
     o, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
 
     # Main loop: collect experience in env and update/log each epoch
@@ -450,11 +450,11 @@ def trpo(
         update()
 
         # Log info about epoch
-        logger.log_tabular("Epoch", epoch)
+        logger.log_tabular("epoch", epoch)
         logger.log_tabular("EpRet", with_min_and_max=True)
         logger.log_tabular("EpLen", average_only=True)
         logger.log_tabular("VVals", with_min_and_max=True)
-        logger.log_tabular("TotalEnvInteracts", (epoch + 1) * steps_per_epoch)
+        logger.log_tabular("envSteps", (epoch + 1) * steps_per_epoch)
         logger.log_tabular("LossPi", average_only=True)
         logger.log_tabular("LossV", average_only=True)
         logger.log_tabular("DeltaLossPi", average_only=True)
@@ -462,7 +462,7 @@ def trpo(
         logger.log_tabular("KL", average_only=True)
         if algo == "trpo":
             logger.log_tabular("BacktrackIters", average_only=True)
-        logger.log_tabular("Time", time.time() - start_time)
+        logger.log_tabular("time", logger.since('start'))
         logger.dump_tabular()
 
 
@@ -481,7 +481,7 @@ if __name__ == "__main__":
     parser.add_argument("--exp_name", type=str, default="trpo")
     args = parser.parse_args()
 
-    mpi_fork(args.cpu)  # run parallel code with mpi
+    fork(args.cpu)  # run parallel code with mpi
 
     from playground.utils.run_utils import setup_logger_kwargs
 

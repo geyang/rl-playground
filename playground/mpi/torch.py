@@ -1,8 +1,8 @@
 import torch
-from playground.utils.mpi_tools import broadcast, mpi_avg, num_procs
+from .tools import broadcast, mpi_avg, num_procs
 
 
-def setup_pytorch_for_mpi():
+def setup():
     """
     Avoid slowdowns caused by each separate process's PyTorch using
     more than its fair share of CPU resources.
@@ -13,13 +13,13 @@ def setup_pytorch_for_mpi():
     torch.set_num_threads(fair_num_threads)
 
 
-def sync_all_params(param, root=0):
+def sync_params(param, root=0):
     data = torch.nn.utils.parameters_to_vector(param).detach().numpy()
     broadcast(data, root)
     torch.nn.utils.vector_to_parameters(torch.from_numpy(data), param)
 
 
-def average_gradients(param_groups):
+def average_grad(param_groups):
     for param_group in param_groups:
         for p in param_group["params"]:
             if p.requires_grad:

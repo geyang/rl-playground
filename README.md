@@ -1,44 +1,18 @@
 # Welcome to RL-Playground!
 
-### Installing RL Playground
+This repo contains implementation and baselines for the following algorithms:
 
-```
-git clone https://github.com/geyang/rl-playground.git
-cd rl-playground
-pip install -e .
-```
+- [x] DQN
+- [x] Proximal Policy Optimization (PPO)
+- [x] Soft Actor-Critic (SAC)
+- [x] Twin Delayed DDPG (TD3)
 
-RL Playground defaults to installing everything in Gym **except** the MuJoCo environments.
+Missing Pieces:
 
-### Check Your Install
+- [ ] hindsight experience replay
+- [ ] pixel input
 
-To see if you've successfully installed RL Playground, try running PPO in the `LunarLander-v2` environment with:
 
-```
-python -m playground.run ppo --hid "[32,32]" --env LunarLander-v2 --exp_name installtest --gamma 0.999
-```
-
-After it finishes training, watch a video of the trained policy with:
-
-```
-python -m playground.run test_policy data/installtest/installtest_s0
-```
-
-And plot the results with:
-
-```
-python -m playground.run plot data/installtest/installtest_s0
-```
-
-## Algorithms
-
-The following algorithms are implemented in the RL Playground package:
-
-- Proximal Policy Optimization (PPO)
-- Deep Q-Network (DQN)
-- Deep Deterministic Policy Gradient (DDPG)
-- Twin Delayed DDPG (TD3)
-- Soft Actor-Critic (SAC)
 
 ## Citation
 
