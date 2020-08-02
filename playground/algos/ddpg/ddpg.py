@@ -128,8 +128,7 @@ def ddpg(
 
     """
     from ml_logger import logger
-
-    logger.log_params(kwargs=locals())
+    # logger.log_params(kwargs=locals())
 
     # torch.autograd.set_detect_anomaly(True)
     torch.manual_seed(seed)
@@ -233,7 +232,7 @@ def ddpg(
                     torch.Tensor(batch["done"]),
                 )
                 _, q, q_pi = main(obs1, acts)
-                _, _, q_pi_targ = target(obs2, acts)
+                _, q_pi_targ = target(obs2)
 
                 # Bellman backup for Q function
                 backup = (rews + gamma * (1 - done) * q_pi_targ).detach()
@@ -242,17 +241,17 @@ def ddpg(
                 pi_loss = -q_pi.mean()
                 q_loss = F.mse_loss(q, backup)
 
-                # Q-learning update
-                q_optimizer.zero_grad()
-                q_loss.backward()
-                q_optimizer.step()
-                logger.store(LossQ=q_loss, QVals=q.data.numpy())
-
                 # Policy update
                 pi_optimizer.zero_grad()
                 pi_loss.backward()
                 pi_optimizer.step()
-                logger.store(LossPi=pi_loss)
+                logger.store(LossPi=pi_loss.item())
+
+                # Q-learning update (note: after Policy update to avoid error)
+                q_optimizer.zero_grad()
+                q_loss.backward()
+                q_optimizer.step()
+                logger.store(LossQ=q_loss.item(), QVals=q.data.numpy())
 
                 # Polyak averaging for target parameters
                 for p_main, p_target in zip(main.parameters(), target.parameters()):

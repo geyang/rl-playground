@@ -11,9 +11,9 @@ DDPG and TD3 implementations however are.
 The `mrl` library attains stronger performance.
 """
 prefix = None
-methods = ['ppo', 'sac', 'td3']
+methods = ['ppo', 'sac', 'td3', 'ddpg']
 
-prefix = "geyang/playground/2020/08-01/cheetah/18.36.22"
+# prefix = "geyang/playground/2020/08-01/cheetah/18.36.22"
 
 env_id = "HalfCheetah"
 
@@ -24,15 +24,16 @@ if not prefix:
     from playground.algos.ppo.ppo import ppo
     from playground.algos.sac.sac import sac
     from playground.algos.td3.td3 import td3
+    from playground.algos.ddpg.ddpg import ddpg
     from pg_experiments import instr
 
     jaynes.config()
 
     for method in methods:
-        for seed in [100, 200, 300]:
+        for seed in [100, 200, 300, 400, 500]:
             thunk = instr(eval(method),
                           lambda: gym.make(f"{env_id}-v2"),
-                          ac_kwargs=dict(hidden_sizes=[64, ] * 2),
+                          ac_kwargs=dict(hidden_sizes=[1024, ] * 3),
                           gamma=0.99,
                           seed=seed,
                           steps_per_epoch=4000,
