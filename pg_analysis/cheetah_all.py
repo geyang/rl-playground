@@ -2,8 +2,13 @@ from cmx import doc, CommonMark
 
 # doc = CommonMark(filename="README.md", overwrite=True)
 doc @ """
-# Result Summary
+# All baselines on Cheetah-v2
 
+As mentioned in the Spinup documentation, the PPO 
+implementation here is not on-par with SOTA. The SAC,
+DDPG and TD3 implementations however are. 
+
+The `mrl` library attains stronger performance.
 """
 prefix = None
 methods = ['ppo', 'sac', 'td3']
