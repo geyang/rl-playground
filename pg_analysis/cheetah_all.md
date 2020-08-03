@@ -2,8 +2,10 @@
 # All baselines on Cheetah-v2
 
 As mentioned in the Spinup documentation, the PPO 
-implementation here is not on-par with SOTA. The SAC,
-DDPG and TD3 implementations however are. 
+implementation here is not on-par with SOTA because
+it is missing pretty common tricks such as reward 
+normalization etc. The SAC, DDPG and TD3 implementations
+however are. 
 
 The `mrl` library attains stronger performance.
 

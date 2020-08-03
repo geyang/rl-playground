@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 plt.rcParams.update({'font.family': 'serif',
-                     'figure.figsize': [5.1, 2.8],
+                     'figure.figsize': [5.5, 2.8],
                      'figure.dpi': 120,
                      # 'figure.frameon': False,
                      'xtick.labelsize': 16,
@@ -160,6 +160,3 @@ def plot_area(df, xKey, *yKeys, k=40, label=None, labels=None, color=None, color
 
     plt.gca().spines['right'].set_visible(False)
     plt.gca().spines['top'].set_visible(False)
-    # plt.xlabel('Longitude')
-    # plt.ylabel('Latitude')
-    plt.tight_layout()

@@ -3,6 +3,7 @@ import torch
 import torch.nn.functional as F
 import gym
 from playground.algos.ddpg import core
+from playground.wrappers import env_fn
 
 
 class ReplayBuffer:
@@ -46,7 +47,8 @@ Deep Deterministic Policy Gradient (DDPG)
 
 
 def ddpg(
-        env_fn,
+        env_id,
+        wrappers=tuple(),
         actor_critic=core.ActorCritic,
         ac_kwargs=dict(),
         seed=0,
@@ -66,9 +68,8 @@ def ddpg(
     """
 
     Args:
-        env_fn : A function which creates a copy of the environment.
-            The environment must satisfy the OpenAI Gym API.
-            
+        env_id : A gym environment id
+
         actor_critic: The agent's main model which takes some states ``x`` and 
             and actions ``a`` and returns a tuple of:
 
@@ -129,12 +130,20 @@ def ddpg(
     """
     from ml_logger import logger
     # logger.log_params(kwargs=locals())
+    logger.log_text("""
+                    charts:
+                    - EpRet/mean
+                    - TestEpRet/mean
+                    - QVals/mean
+                    - LossQ/mean
+                    - LossPi/mean
+                    """, ".charts.yml", True)
 
     # torch.autograd.set_detect_anomaly(True)
     torch.manual_seed(seed)
     np.random.seed(seed)
 
-    env, test_env = env_fn(), env_fn()
+    env, test_env = env_fn(env_id, *wrappers, seed=seed), env_fn(env_id, *wrappers, seed=seed + 100)
     obs_dim = env.observation_space.shape[0]
     act_dim = env.action_space.shape[0]
 
@@ -275,18 +284,17 @@ def ddpg(
 
             # Log info about epoch
             logger.log_metrics_summary(
-                key_values={"epoch": epoch, "envSteps": t, "time": logger.split("start")},
+                key_values={"epoch": epoch, "envSteps": t, "time": logger.since("start")},
                 key_stats={"EpRet": "min_max", "TestEpRet": "min_max", "EpLen": "mean",
                            "TestEpLen": "mean", "QVals": "min_max", "LossPi": "mean",
                            "LossQ": "mean", })
 
 
 if __name__ == "__main__":
-    ddpg(
-        lambda: gym.make("HalfCheetah-v2"),
-        actor_critic=core.ActorCritic,
-        ac_kwargs=dict(hidden_sizes=[31, 31] * 4),
-        gamma=0.99,
-        seed=0,
-        epochs=50,
-    )
+    ddpg("HalfCheetah-v2",
+         actor_critic=core.ActorCritic,
+         ac_kwargs=dict(hidden_sizes=[31, 31] * 4),
+         gamma=0.99,
+         seed=0,
+         epochs=50,
+         )

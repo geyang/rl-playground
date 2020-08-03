@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import gym
 import time
 from playground.algos.td3 import core
+from playground.wrappers import env_fn
 
 
 class ReplayBuffer:
@@ -44,7 +45,7 @@ TD3 (Twin Delayed DDPG)
 """
 
 
-def td3(env_fn, actor_critic=core.ActorCritic, ac_kwargs=dict(), seed=0,
+def td3(env_id, wrappers=tuple(), actor_critic=core.ActorCritic, ac_kwargs=dict(), seed=0,
         steps_per_epoch=5000, epochs=100, replay_size=int(1e6), gamma=0.99,
         polyak=0.995, pi_lr=1e-3, q_lr=1e-3, batch_size=100, start_steps=10000,
         act_noise=0.1, target_noise=0.2, noise_clip=0.5, policy_delay=2,
@@ -52,8 +53,7 @@ def td3(env_fn, actor_critic=core.ActorCritic, ac_kwargs=dict(), seed=0,
     """
 
     Args:
-        env_fn : A function which creates a copy of the environment.
-            The environment must satisfy the OpenAI Gym API.
+        env_id : A gym environment id
 
         actor_critic: The agent's main model which for state ``x`` and
             action, ``a`` returns the following outputs:
@@ -138,7 +138,7 @@ def td3(env_fn, actor_critic=core.ActorCritic, ac_kwargs=dict(), seed=0,
     torch.manual_seed(seed)
     np.random.seed(seed)
 
-    env, test_env = env_fn(), env_fn()
+    env, test_env = env_fn(env_id, *wrappers, seed=seed), env_fn(env_id, *wrappers, seed=seed + 100)
     obs_dim = env.observation_space.shape[0]
     act_dim = env.action_space.shape[0]
 
@@ -304,5 +304,5 @@ def td3(env_fn, actor_critic=core.ActorCritic, ac_kwargs=dict(), seed=0,
 
 
 if __name__ == '__main__':
-    td3(lambda: gym.make("HalfCheetah-v2"), actor_critic=core.ActorCritic,
+    td3("HalfCheetah-v2", actor_critic=core.ActorCritic,
         ac_kwargs=dict(hidden_sizes=[300] * 2), gamma=0.99, seed=0, epochs=50)

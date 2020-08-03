@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import gym
 import time
 from playground.algos.sac import core
+from playground.wrappers import env_fn
 
 
 class ReplayBuffer:
@@ -49,7 +50,8 @@ Soft Actor-Critic
 
 
 def sac(
-        env_fn,
+        env_id,
+        wrappers=tuple(),
         actor_critic=core.ActorCritic,
         ac_kwargs=dict(),
         seed=0,
@@ -69,8 +71,7 @@ def sac(
     """
 
     Args:
-        env_fn : A function which creates a copy of the environment.
-            The environment must satisfy the OpenAI Gym API.
+        env_fn : a gym environment id
 
         actor_critic: The agent's model which takes the state ``x`` and 
             action, ``a`` and returns a tuple of:
@@ -159,7 +160,7 @@ def sac(
     torch.manual_seed(seed)
     np.random.seed(seed)
 
-    env, test_env = env_fn(), env_fn()
+    env, test_env = env_fn(env_id, *wrappers, seed=seed), env_fn(env_id, *wrappers, seed=seed + 100)
     obs_dim = env.observation_space.shape[0]
     act_dim = env.action_space.shape[0]
 
@@ -368,7 +369,7 @@ def sac(
 
 
 if __name__ == "__main__":
-    sac(lambda: gym.make("HalfCheetah-v2"),
+    sac("HalfCheetah-v2",
         actor_critic=core.ActorCritic,
         ac_kwargs=dict(hidden_sizes=[300] * 2),
         gamma=0.99,

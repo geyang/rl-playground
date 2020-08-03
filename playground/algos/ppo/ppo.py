@@ -5,6 +5,7 @@ import gym
 import scipy.signal
 import playground.algos.ppo.core as core
 from playground import mpi
+from playground.wrappers import env_fn
 
 
 class PPOBuffer:
@@ -112,7 +113,8 @@ with early stopping based on approximate KL
 
 
 def ppo(
-        env_fn,
+        env_id,
+        wrappers=tuple(),
         actor_critic=core.ActorCritic,
         ac_kwargs=dict(),
         seed=0,
@@ -132,8 +134,7 @@ def ppo(
     """
 
     Args:
-        env_fn : A function which creates a copy of the environment.
-            The environment must satisfy the OpenAI Gym API.
+        env_id : gym environment id
 
         actor_critic: The agent's main model which is composed of
             the policy and value function model, where the policy takes
@@ -215,7 +216,8 @@ def ppo(
     torch.manual_seed(seed)
     np.random.seed(seed)
 
-    env = env_fn()
+    env = env_fn(env_id, *wrappers, seed=seed)
+
     obs_dim = env.observation_space.shape
     act_dim = env.action_space.shape
 
@@ -368,7 +370,7 @@ def ppo(
 if __name__ == "__main__":
     mpi.tools.fork(16)
 
-    ppo(lambda: gym.make("HalfCheetah-v2"),
+    ppo("HalfCheetah-v2",
         actor_critic=core.ActorCritic,
         ac_kwargs=dict(hidden_sizes=[64, ] * 2),
         gamma=0.99,
