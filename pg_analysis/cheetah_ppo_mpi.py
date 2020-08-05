@@ -52,7 +52,7 @@ if __name__ == '__main__':
     from pg_experiments import RUN
     from pg_analysis import plot_area, COLORS
 
-    loader = ML_Logger(log_directory=RUN.server, prefix=prefix)
+    loader = ML_Logger(root_dir=RUN.server, prefix=prefix)
 
     with doc.row(styles=dict(width="100%")):
 

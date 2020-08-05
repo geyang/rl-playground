@@ -110,7 +110,7 @@ def instr(fn, *ARGS, _job_prefix=None, _job_postfix=None, _job_counter=True,
 
     # todo: there should be a better way to log these.
     # todo: we shouldn't need to log to the same directory, and the directory for the run shouldn't be fixed.
-    logger.configure(log_directory=RUN.server, prefix=PREFIX, asynchronous=False,  # use sync logger
+    logger.configure(root_dir=RUN.server, prefix=PREFIX, asynchronous=False,  # use sync logger
                      max_workers=4, register_experiment=False)
     logger.upload_file(caller_script)
     # the tension is in between creation vs run. Code snapshot are shared, but runs need to be unique.
@@ -150,13 +150,11 @@ def instr(fn, *ARGS, _job_prefix=None, _job_postfix=None, _job_counter=True,
                                     f"both thunk creation as well as run.\n" \
                                     f"_args: {args}\nARGS: {ARGS}"
 
-        logger.configure(log_directory=RUN.server, prefix=PREFIX, register_experiment=False, max_workers=10)
-        from playground import mpi
-        if not mpi.tools.proc_id():
-            logger.log_params(host=dict(hostname=logger.hostname),
-                              run=dict(status="running",
-                                       startTime=logger.now(),
-                                       job_id=logger.job_id))
+        logger.configure(root_dir=RUN.server, prefix=PREFIX, register_experiment=False, max_workers=10)
+        # from playground import mpi
+        # if not mpi.tools.proc_id():
+        logger.log_params(host=dict(hostname=logger.hostname),
+                          run=dict(status="running", startTime=logger.now(), job_id=logger.job_id))
 
         import time
         try:
