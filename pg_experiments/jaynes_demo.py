@@ -1,5 +1,6 @@
 def train():
-    print('running')
+    from ml_logger import logger
+    logger.print('running')
 
 
 if __name__ == '__main__':
