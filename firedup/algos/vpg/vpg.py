@@ -4,9 +4,9 @@ import torch.nn.functional as F
 import gym
 import time
 import scipy.signal
-import playground.algos.vpg.core as core
-from playground.utils.logx import EpochLogger
-from playground import mpi
+import firedup.algos.vpg.core as core
+from firedup.utils.logx import EpochLogger
+from firedup import mpi
 
 
 class VPGBuffer:
@@ -216,7 +216,7 @@ def vpg(
         core.count_vars(module)
         for module in [actor_critic.policy, actor_critic.value_function]
     )
-    logger.log("\nNumber of parameters: \t pi: %d, \t v: %d\n" % var_counts)
+    logger.log("Number of parameters: \t pi: {:d}, \t v: {:d}\n".format(*var_counts))
 
     # Optimizers
     train_pi = torch.optim.Adam(actor_critic.policy.parameters(), lr=pi_lr)
@@ -346,7 +346,7 @@ if __name__ == "__main__":
 
     mpi.tools.fork(args.cpu)  # run parallel code with mpi
 
-    from playground.utils.run_utils import setup_logger_kwargs
+    from firedup.utils.run_utils import setup_logger_kwargs
 
     logger_kwargs = setup_logger_kwargs(args.exp_name, args.seed)
 

@@ -20,7 +20,7 @@ env_id = "HalfCheetah"
 if not prefix:
     import gym
     import jaynes
-    from playground.algos.ppo.ppo import ppo
+    from firedup.algos.ppo.ppo import ppo
     from pg_experiments import instr
 
     # n_cpu = 8

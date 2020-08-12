@@ -6,7 +6,7 @@ __pycache__
 *.pyc
 data
 datasets
-vector.jaynes.yml
+*.jaynes.yml
 *.egg-info
 **/videos
 **/data

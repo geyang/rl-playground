@@ -3,8 +3,8 @@ import torch
 import torch.nn.functional as F
 import gym
 import time
-from playground.algos.sac import core
-from playground.wrappers import env_fn
+from firedup.algos.sac import core
+from firedup.wrappers import env_fn
 
 
 class ReplayBuffer:
@@ -181,13 +181,8 @@ def sac(
         core.count_vars(module)
         for module in [main.policy, main.q1, main.q2, main.vf_mlp, main]
     )
-    print(
-        (
-                "\nNumber of parameters: \t pi: %d, \t"
-                + "q1: %d, \t q2: %d, \t v: %d, \t total: %d\n"
-        )
-        % var_counts
-    )
+    logger.print("Number of parameters: \t pi: {:d},\t q1: {:d},\t q2: {:d},"
+               "\t v: {:d},\t total: {:d}\n".format(*var_counts))
 
     # Policy train op
     # (has to be separate from value train op, because q1_pi appears in pi_loss)

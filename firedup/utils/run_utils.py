@@ -1,12 +1,12 @@
-from playground.user_config import (
+from firedup.user_config import (
     DEFAULT_DATA_DIR,
     FORCE_DATESTAMP,
     DEFAULT_SHORTHAND,
     WAIT_BEFORE_LAUNCH,
 )
-from playground.utils.logx import colorize
-from playground.mpi.tools import fork
-from playground.utils.serialization_utils import convert_json
+from firedup.utils.logx import colorize
+from firedup.mpi.tools import fork
+from firedup.utils.serialization_utils import convert_json
 import base64
 import cloudpickle
 import json

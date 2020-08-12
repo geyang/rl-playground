@@ -3,9 +3,9 @@ import torch
 import torch.nn.functional as F
 import gym
 import scipy.signal
-import playground.algos.ppo.core as core
-from playground import mpi
-from playground.wrappers import env_fn
+import firedup.algos.ppo.core as core
+from firedup import mpi
+from firedup.wrappers import env_fn
 
 
 class PPOBuffer:
@@ -104,33 +104,14 @@ class PPOBuffer:
 
 
 """
-
 Proximal Policy Optimization (by clipping),
-
 with early stopping based on approximate KL
-
 """
 
 
-def ppo(
-        env_id,
-        wrappers=tuple(),
-        actor_critic=core.ActorCritic,
-        ac_kwargs=dict(),
-        seed=0,
-        steps_per_epoch=4000,
-        epochs=50,
-        gamma=0.99,
-        clip_ratio=0.2,
-        pi_lr=3e-4,
-        vf_lr=1e-3,
-        train_pi_iters=80,
-        train_v_iters=80,
-        lam=0.97,
-        max_ep_len=1000,
-        target_kl=0.01,
-        save_freq=10,
-):
+def ppo(env_id, wrappers=tuple(), actor_critic=core.ActorCritic, ac_kwargs=dict(), seed=0, steps_per_epoch=4000,
+        epochs=50, gamma=0.99, clip_ratio=0.2, pi_lr=3e-4, vf_lr=1e-3, train_pi_iters=80, train_v_iters=80, lam=0.97,
+        max_ep_len=1000, target_kl=0.01, save_freq=10, ):
     """
 
     Args:

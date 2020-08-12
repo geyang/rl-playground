@@ -11,8 +11,8 @@ prefix = "geyang/playground/2020/08-01/cheetah/01.40.12"
 if not prefix:
     import gym
     import jaynes
-    # from playground.algos.ppo.ppo import ppo
-    from playground.algos.sac.sac import sac
+    # from firedup.algos.ppo.ppo import ppo
+    from firedup.algos.sac.sac import sac
     from pg_experiments import instr
 
     jaynes.config()

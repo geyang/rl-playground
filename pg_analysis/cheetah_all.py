@@ -23,10 +23,10 @@ env_id = "HalfCheetah"
 if not prefix:
     import gym
     import jaynes
-    from playground.algos.ppo.ppo import ppo
-    from playground.algos.sac.sac import sac
-    from playground.algos.td3.td3 import td3
-    from playground.algos.ddpg.ddpg import ddpg
+    from firedup.algos.ppo.ppo import ppo
+    from firedup.algos.sac.sac import sac
+    from firedup.algos.td3.td3 import td3
+    from firedup.algos.ddpg.ddpg import ddpg
     from pg_experiments import instr
 
     jaynes.config()

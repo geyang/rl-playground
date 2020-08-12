@@ -6,10 +6,10 @@ import gym
 from gym.spaces import Box
 import time
 import scipy.signal
-import playground.algos.trpo.core as core
-from playground.utils.logx import EpochLogger
-from playground.mpi.torch import sync_params, average_grad, setup
-from playground.mpi.tools import (
+import firedup.algos.trpo.core as core
+from firedup.utils.logx import EpochLogger
+from firedup.mpi.torch import sync_params, average_grad, setup
+from firedup.mpi.tools import (
     fork,
     mpi_avg,
     proc_id,
@@ -292,7 +292,7 @@ def trpo(
         core.count_vars(module)
         for module in [actor_critic.policy, actor_critic.value_function]
     )
-    logger.log("\nNumber of parameters: \t pi: %d, \t v: %d\n" % var_counts)
+    logger.log("Number of parameters: \t pi: {:d}, \t v: {:d}\n".format(*var_counts))
 
     # Optimizer for value function
     train_vf = torch.optim.Adam(actor_critic.value_function.parameters(), lr=vf_lr)
@@ -483,7 +483,7 @@ if __name__ == "__main__":
 
     fork(args.cpu)  # run parallel code with mpi
 
-    from playground.utils.run_utils import setup_logger_kwargs
+    from firedup.utils.run_utils import setup_logger_kwargs
 
     logger_kwargs = setup_logger_kwargs(args.exp_name, args.seed)
 

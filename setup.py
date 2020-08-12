@@ -4,12 +4,12 @@ import sys
 
 assert sys.version_info > (3, 6, 0), "Only support Python 3.6 and above."
 
-with open(join("playground", "VERSION")) as f:
+with open(join("firedup", "VERSION")) as f:
     version = f.read()
 
 setup(
     name="playground",
-    py_modules=["playground"],
+    py_modules=["firedup"],
     version=version,
     install_requires=[
         "cloudpickle",

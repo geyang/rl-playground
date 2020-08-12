@@ -1,6 +1,6 @@
-import playground
-from playground.utils.run_utils import ExperimentGrid
-from playground.utils.serialization_utils import convert_json
+import firedup
+from firedup.utils.run_utils import ExperimentGrid
+from firedup.utils.serialization_utils import convert_json
 import argparse
 import gym
 import json

@@ -13,8 +13,8 @@ import os.path as osp
 import time
 import atexit
 import os
-from playground.mpi.tools import proc_id, mpi_statistics_scalar
-from playground.utils.serialization_utils import convert_json
+from firedup.mpi.tools import proc_id, mpi_statistics_scalar
+from firedup.utils.serialization_utils import convert_json
 import wandb
 
 

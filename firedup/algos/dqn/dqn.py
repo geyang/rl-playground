@@ -2,7 +2,8 @@ import numpy as np
 import gym
 import torch
 import torch.nn.functional as F
-from playground.algos.dqn import core
+from firedup.algos.dqn import core
+from firedup.wrappers import env_fn
 
 
 class ReplayBuffer:
@@ -39,39 +40,30 @@ class ReplayBuffer:
 
 
 """
-
 Deep Q-Network
-
 """
 
 
-def dqn(
-        env_fn,
-        q_network=core.DQNetwork,
-        ac_kwargs=dict(),
-        seed=0,
-        steps_per_epoch=5000,
-        epochs=100,
-        replay_size=int(1e6),
-        gamma=0.99,
-        min_replay_history=20000,
-        epsilon_decay_period=250000,
-        epsilon_train=0.01,
-        epsilon_eval=0.001,
-        lr=1e-3,
-        max_ep_len=1000,
-        update_period=4,
-        target_update_period=8000,
-        batch_size=100,
-        save_freq=1,
-):
+def dqn(env_id, q_network=core.DQNetwork, ac_kwargs={}, seed=0, steps_per_epoch=5000, epochs=100,
+        replay_size=int(1e6), gamma=0.99, min_replay_history=20000, epsilon_decay_period=250000, epsilon_train=0.01,
+        epsilon_eval=0.001, lr=1e-3, max_ep_len=1000, update_period=4, target_update_period=8000, batch_size=100,
+        save_freq=1, ):
     from ml_logger import logger
     logger.log_params(kwargs=locals())
 
     torch.manual_seed(seed)
     np.random.seed(seed)
 
-    env, test_env = env_fn(), env_fn()
+    logger.log_text("""
+                    charts:
+                    - xKey: __timestamp
+                      xFormat: time
+                      yKey: EpRet/mean
+                    - xKey: epoch
+                      yKey: LossQ/mean
+                    """, ".charts.yml", overwrite=True)
+
+    env, test_env = env_fn(env_id, seed=seed), env_fn(env_id, seed=seed + 100)
     obs_dim = env.observation_space.shape[0]
     act_dim = 1  # env.action_space.shape
 
@@ -89,7 +81,7 @@ def dqn(
 
     # Count variables
     var_counts = tuple(core.count_vars(module) for module in [main.q, main])
-    print(("\nNumber of parameters: \t q: %d, \t total: %d\n") % var_counts)
+    logger.print("Number of parameters: \t q: {:d}, \t total: {:d}\n".format(*var_counts), color="green")
 
     # Value train op
     value_params = main.q.parameters()
@@ -197,19 +189,13 @@ def dqn(
             test_agent()
 
             # Log info about epoch
-            logger.log_metrics_summary(key_value={"epoch": epoch,
-                                                  "envSteps": t,
-                                                  "time": logger.since('start')},
-                                       key_stats={"EpRet": "min_max",
-                                                  "TestEpRet": "min_max",
-                                                  "EpLen": "mean",
-                                                  "TestEpLen": "mean",
-                                                  "QVals": "min_max",
-                                                  "LossQ": "mean"})
+            logger.log_metrics_summary(key_values={"epoch": epoch, "envSteps": t, "time": logger.since('start')},
+                                       key_stats={"EpRet": "min_max", "TestEpRet": "min_max", "EpLen": "mean",
+                                                  "TestEpLen": "mean", "QVals": "min_max", "LossQ": "mean"})
 
 
 if __name__ == '__main__':
-    dqn(lambda: gym.make("LunarLander-v2"),
+    dqn("LunarLander-v2",
         ac_kwargs=dict(hidden_sizes=[64, ] * 2),
         gamma=0.99,
         seed=0,
