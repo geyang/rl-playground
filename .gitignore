@@ -11,3 +11,6 @@ datasets
 **/videos
 **/data
 **/training
+**/parameters.pkl
+**/metrics.pkl
+**/outputs.log
