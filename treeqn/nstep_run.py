@@ -10,8 +10,9 @@ from contextlib import contextmanager
 import functools
 from operator import itemgetter
 import numpy as np
+
+from treeqn.config import Config
 from treeqn.utils.bench.monitor import load_global_results
-from treeqn.utils.logger import Logger, HumanOutputFormat
 from treeqn.utils.bl_common import explained_variance
 from treeqn.utils.seed import set_global_seeds
 from treeqn.utils import bench
@@ -21,79 +22,11 @@ from treeqn.utils.treeqn_utils import get_timestamped_dir, append_scalar, append
 from treeqn.models.models import DQNPolicy, TreeQNPolicy
 from treeqn.envs.push import Push
 from treeqn.nstep_learn import Learner, Runner
-from sacred import Experiment
-from sacred.arg_parser import parse_args
 from sacred.commands import save_config, print_config
-from sacred.observers import FileStorageObserver
-
-logger = logging.getLogger('treeqn_log')
+from params_proto.neo_partial import proto_partial
 
 
-# Sacred setup to support config hierarchies
-@contextmanager
-def suppress_stdout():
-    with open(os.devnull, "w") as devnull:
-        old_stdout = sys.stdout
-        sys.stdout = devnull
-        try:
-            yield
-        finally:
-            sys.stdout = old_stdout
-
-
-parsed_args = dict([x.split("=") for x in parse_args(sys.argv)["UPDATE"]])
-if "config" in parsed_args:
-    path = parsed_args["config"]
-else:
-    path = "./conf/default.yaml"
-
-
-def fetch_parents(current_path, parents=[]):
-    tmp_ex = Experiment('treeqn')
-    tmp_ex.add_config(current_path)
-    with suppress_stdout():
-        tmp_ex.run("print_config")
-    if tmp_ex.current_run is not None and "parent_config" in tmp_ex.current_run.config:
-        return fetch_parents(tmp_ex.current_run.config["parent_config"], [current_path] + parents)
-    else:
-        return [current_path] + parents
-
-
-configs = fetch_parents(path)
-ex = Experiment('treeqn')
-for path in configs:
-    ex.add_config(path)
-
-ex.logger = logger
-
-ex.observers.append(FileStorageObserver.create('./results'))
-
-
-@ex.config
-def my_config(save_folder, env_id, architecture, label, name):
-    pytorch_version = torch.__version__
-    # Timestamp experiment directory
-    save_folder = get_timestamped_dir(save_folder)
-
-    # Environment switches
-    # obs_dtype as str does the job and plays nice with sacred
-    obs_dtype, input_mode = 'uint8', "atari"
-    if "push" in env_id:
-        obs_dtype, input_mode = 'float32', "push"
-
-    if architecture == "dqn":
-        predict_rewards = False
-
-    # Setup Logger
-    Logger.DEFAULT = Logger.CURRENT = Logger(dir=save_folder, output_formats=[HumanOutputFormat(sys.stdout)])
-
-    # Create monitor dir
-    monitor_dir = os.path.join(save_folder, "%s-%s-%s" % (env_id, label, name))
-    if not os.path.exists(monitor_dir):
-        os.makedirs(monitor_dir)
-
-
-@ex.capture
+@proto_partial(Config)
 def create_env(env_id, monitor_dir, num_cpu, frameskip, seed, _run):
     def make_env(rank, dir):
         def _thunk():
@@ -116,7 +49,7 @@ def create_env(env_id, monitor_dir, num_cpu, frameskip, seed, _run):
     return vecenv
 
 
-@ex.capture
+@proto_partial(Config)
 def create_model(env,
                  architecture,
                  gamma,
@@ -134,17 +67,16 @@ def create_model(env,
                  nstack,
                  extra_layers,
                  nsteps):
-
     shared_policy_args = {
-                          "embedding_dim": embedding_dim,
-                          "use_actor_critic": use_actor_critic,
-                          "input_mode": input_mode,
-                          "gamma": gamma,
-                          "predict_rewards": predict_rewards,
-                          "value_aggregation": value_aggregation,
-                          "td_lambda": td_lambda,
-                          "normalise_state": normalise_state,
-                          }
+        "embedding_dim": embedding_dim,
+        "use_actor_critic": use_actor_critic,
+        "input_mode": input_mode,
+        "gamma": gamma,
+        "predict_rewards": predict_rewards,
+        "value_aggregation": value_aggregation,
+        "td_lambda": td_lambda,
+        "normalise_state": normalise_state,
+    }
 
     if architecture == "dqn":
         policy = functools.partial(DQNPolicy,
@@ -164,7 +96,7 @@ def create_model(env,
     return model
 
 
-@ex.capture
+@proto_partial(Config)
 def train(nstack,
           frameskip,
           use_actor_critic,
@@ -192,7 +124,6 @@ def train(nstack,
           obs_dtype,
           monitor_dir,
           _run=None):
-
     # initialise environment and model
     env = create_env()
     model = create_model(env)
@@ -310,14 +241,20 @@ def train(nstack,
     env.close()
 
 
-@ex.automain
-def main(_run, seed, save_folder, config_filename):
-    set_global_seeds(seed)
-    logger.info("Run id: {}".format(_run._id))
+def main(debug=True, **kwargs):
+    import random
+    import numpy as np
+    from ml_logger import logger
 
-    print_config(ex.current_run)
+    Config(debug=debug, **kwargs)
+    logger.log_params(Config=vars(Config))
 
-    # saving config
-    save_config(ex.current_run.config, ex.logger,
-                config_filename=save_folder + config_filename)
+    torch.manual_seed(Config.seed)
+    np.random.seed(Config.seed)
+    random.seed(Config.seed)
+
     train()
+
+
+if __name__ == '__main__':
+    main()

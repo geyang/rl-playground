@@ -4,8 +4,8 @@ def train():
 
 if __name__ == '__main__':
     import jaynes
-    from pg_experiments import RUN
+    from pg_experiments import instr
 
-    jaynes.config('gpu-mars')
-    jaynes.run(train)
-    jaynes.listen()
+    thunk = instr(train)
+    jaynes.config('gpu-mars', launch=dict(timeout=None))
+    jaynes.run(thunk)
