@@ -14,7 +14,86 @@ def count_vars(module):
     return sum(p.numel() for p in module.parameters() if p.requires_grad)
 
 
-class MLP(nn.Module):
+class Mimport torch
+from torch import nn as nn
+from torch_utils import View, Λ
+
+
+# class Metric(nn.Module):
+#
+#     latent_dim = None
+#     embed = None
+#     kernel = None
+
+
+# regular conv, migrated from ConvLargeL2.
+class Conv(nn.Module):
+    def __init__(self, input_dim, latent_dim, p=2):
+        super().__init__()
+
+        self.latent_dim = latent_dim
+        self.embed = nn.Sequential(
+            nn.Conv2d(input_dim, 32, kernel_size=4, stride=2),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.Conv2d(64, 64, kernel_size=4, stride=2),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.Conv2d(64, 32, kernel_size=4, stride=2),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            View(128),
+            nn.Linear(128, latent_dim),
+        )
+        self.kernel = Λ(lambda a, b=0: (a - b).norm(p, dim=-1))
+
+    def forward(self, x, x_prime):
+        *b, C, H, W = x.shape
+        *b_, C, H, W = x_prime.shape
+        z_1, z_2 = torch.broadcast_tensors(
+            self.embed(x.reshape(-1, C, H, W)).reshape(*b, self.latent_dim),
+            self.embed(x_prime.reshape(-1, C, H, W)).reshape(*b_, self.latent_dim))
+        *b, W = z_1.shape
+        return self.kernel(z_1, z_2).reshape(*b, 1)
+
+
+# for deepmind control suite, takes 84x84 images.
+class ConvDMC(nn.Module):
+    def __init__(self, input_dim, latent_dim, p=2):
+        super().__init__()
+
+        self.latent_dim = latent_dim
+        self.embed = nn.Sequential(
+            nn.Conv2d(input_dim, 32, kernel_size=8, stride=2),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=7, stride=1),
+            nn.ReLU(),
+            nn.Conv2d(64, 64, kernel_size=7, stride=1),
+            nn.ReLU(),
+            nn.Conv2d(64, 32, kernel_size=7, stride=1),
+            nn.ReLU(),
+            nn.Conv2d(32, 32, kernel_size=7, stride=1),
+            nn.ReLU(),
+            nn.Conv2d(32, 32, kernel_size=7, stride=1),
+            nn.ReLU(),
+            View(32 * 9 * 9),
+            nn.Linear(32 * 9 * 9, latent_dim),
+        )
+        self.kernel = Λ(lambda a, b=0: (a - b).norm(p, dim=-1))
+
+    def forward(self, x, x_prime):
+        x.shape
+        *b, C, H, W = x.shape
+        *b_, C, H, W = x_prime.shape
+        z_1, z_2 = torch.broadcast_tensors(
+            self.embed(x.reshape(-1, C, H, W)).reshape(*b, self.latent_dim),
+            self.embed(x_prime.reshape(-1, C, H, W)).reshape(*b_, self.latent_dim))
+        *b, W = z_1.shape
+        return self.kernel(z_1, z_2).reshape(*b, 1)
+LP(nn.Module):
     def __init__(
         self,
         layers,

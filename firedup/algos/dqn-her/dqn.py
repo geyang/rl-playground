@@ -40,11 +40,14 @@ class ReplayBuffer:
 
 
 """
-Deep Q-Network
+Deep Q-Network + HER + Pixel input
 """
 
 
-def dqn(env_id, q_network=core.DQNetwork, ac_kwargs={}, seed=0, steps_per_epoch=5000, epochs=100,
+def dqn(env_id,
+        state_key="x",
+        goal_key="goal",
+        q_network=core.DQNetwork, ac_kwargs={}, seed=0, steps_per_epoch=5000, epochs=100,
         replay_size=int(1e6), gamma=0.99, min_replay_history=20000, epsilon_decay_period=250000, epsilon_train=0.01,
         epsilon_eval=0.001, lr=1e-3, max_ep_len=1000, update_period=4, target_update_period=8000, batch_size=100,
         save_freq=1, ):
@@ -90,16 +93,11 @@ def dqn(env_id, q_network=core.DQNetwork, ac_kwargs={}, seed=0, steps_per_epoch=
     # Initializing targets to match main variables
     target.load_state_dict(main.state_dict())
 
-    def get_action(o, epsilon):
-        """Select an action from the set of available actions.
-        Chooses an action randomly with probability epsilon otherwise
-        act greedily according to the current Q-value estimates.
-        """
+    def get_action(o_s, o_g, epsilon):
         if np.random.random() <= epsilon:
             return env.action_space.sample()
         else:
-            q_values = main(torch.Tensor(o.reshape(1, -1)))
-            # return the action with highest Q-value for this observation
+            q_values = main(o_s, o_g)
             return torch.argmax(q_values, dim=1).item()
 
     def test_agent(n=10):
@@ -113,7 +111,7 @@ def dqn(env_id, q_network=core.DQNetwork, ac_kwargs={}, seed=0, steps_per_epoch=
             logger.store(TestEpRet=ep_ret, TestEpLen=ep_len)
 
     logger.start('start', 'epoch')
-    o, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
+    obs, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
     total_steps = steps_per_epoch * epochs
 
     # Main loop: collect experience in env and update/log each epoch
@@ -124,7 +122,7 @@ def dqn(env_id, q_network=core.DQNetwork, ac_kwargs={}, seed=0, steps_per_epoch=
         epsilon = core.linearly_decaying_epsilon(
             epsilon_decay_period, t, min_replay_history, epsilon_train
         )
-        a = get_action(o, epsilon)
+        a = get_action(obs[state_key], obs[goal_key], epsilon)
 
         # Step the env
         o2, r, d, _ = env.step(a)
@@ -137,15 +135,15 @@ def dqn(env_id, q_network=core.DQNetwork, ac_kwargs={}, seed=0, steps_per_epoch=
         d = False if ep_len == max_ep_len else d
 
         # Store experience to replay buffer
-        replay_buffer.store(o, a, r, o2, d)
+        replay_buffer.store(obs, a, r, o2, d)
 
         # Super critical, easy to overlook step: make sure to update
         # most recent observation!
-        o = o2
+        obs = o2
 
         if d or (ep_len == max_ep_len):
             logger.store(EpRet=ep_ret, EpLen=ep_len)
-            o, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
+            obs, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
 
         # train at the rate of update_period if enough training steps have been run
         if replay_buffer.size > min_replay_history and t % update_period == 0:
@@ -195,7 +193,7 @@ def dqn(env_id, q_network=core.DQNetwork, ac_kwargs={}, seed=0, steps_per_epoch=
 
 
 if __name__ == '__main__':
-    dqn("ge_world:CMaze",
+    dqn("ge_world:CMaze-v0",
         ac_kwargs=dict(hidden_sizes=[64, ] * 2),
         gamma=0.99,
         seed=0,
