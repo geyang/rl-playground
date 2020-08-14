@@ -54,7 +54,7 @@ def dqn(env_id,
         min_replay_history=20000,
         epsilon_decay_period=250000, epsilon_train=0.01,
         epsilon_eval=0.001, lr=1e-3, max_ep_len=1000,
-        update_period=4, target_update_period=8000,
+        update_interval=4, target_update_interval=8000,
         batch_size=100, save_freq=1, ):
     from ml_logger import logger
     logger.log_params(kwargs=locals())
@@ -189,8 +189,8 @@ def dqn(env_id,
             logger.store(EpRet=ep_ret, EpLen=ep_len)
             obs, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
 
-        # train at the rate of update_period if enough training steps have been run
-        if replay_buffer.size > min_replay_history and t % update_period == 0:
+        # train at the rate of update_interval if enough training steps have been run
+        if replay_buffer.size > min_replay_history and t % update_interval == 0:
             main.train()
             batch = replay_buffer.sample_batch(batch_size)
             obs1, obs2, acts, rews, done =
@@ -217,7 +217,7 @@ def dqn(env_id,
         logger.store(LossQ=value_loss.item(), QVals=q_pi.data.numpy())
 
     # syncs weights from online to target network
-    if t % target_update_period == 0:
+    if t % target_update_interval == 0:
         target.load_state_dict(main.state_dict())
 
     # End of epoch wrap-up

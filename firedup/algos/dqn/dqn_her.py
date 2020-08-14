@@ -46,13 +46,18 @@ def dqn(env_id,
         her_k=None,
         optim_epochs=1,
         q_network=core.QMlp, ac_kwargs={}, seed=0, steps_per_epoch=5000, epochs=100,
-        replay_size=int(1e6), gamma=0.99, min_replay_history=20000, epsilon_decay_period=250000, epsilon_train=0.01,
-        epsilon_eval=0.001, lr=1e-3, max_ep_len=1000, update_period=4, target_update_period=8000, batch_size=100,
+        replay_size=int(1e6), gamma=0.99, min_replay_history=20000,
+        epsilon_decay_period=250000, epsilon_train=0.01,
+        epsilon_eval=0.001,
+        lr=1e-3, batch_size=100, update_interval=4,
+        max_ep_len=1000, target_update_interval=8000,
         save_freq=1, ):
     __d = locals()
     from ml_logger import logger
     logger.log_params(kwargs=__d)
     logger.upload_file(__file__)
+
+    assert min_replay_history < replay_size, "min replay history need to be smaller than the buffer size"
 
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -162,20 +167,16 @@ def dqn(env_id,
         # done: insert online HER relabeling here
         replay_buffer.store(traj['x'][-1], a, r, obs, done)
         if her_k:
-            # traj = list(range(10))
-            # for step, a in enumerate(zip(traj[-2::-1],
-            # list(range(10))[-1::-1])):
-            #     print(*a, -1 if step else 0, False if step else True, traj[-1])
             _ = traj['x'][-2::-her_k], traj['x'][-1::-her_k]
             for step, (obs1, obs2) in enumerate(zip(*_)):
                 _obs1, _obs2 = obs1.copy(), obs2.copy()
                 _obs1['goal'] = _obs2['goal'] = obs['x']
                 replay_buffer.store(_obs1, a, -1 if step else 0, _obs2, False if step else True)
-                if step:
+                if step:  # stop the relabel after 1-step
                     break
 
-        # train at the rate of update_period if enough training steps have been run
-        if len(replay_buffer) > min_replay_history and t % update_period == 0:
+        # train at the rate of update_interval if enough training steps have been run
+        if len(replay_buffer) > min_replay_history and t % update_interval == 0:
             main.train()
             for optim_step in range(optim_epochs):
                 batch = replay_buffer.sample(batch_size)
@@ -195,10 +196,10 @@ def dqn(env_id,
                 value_optimizer.zero_grad()
                 value_loss.backward()
                 value_optimizer.step()
-                logger.store(LossQ=value_loss.item(), QVals=q_pi.data.numpy())
+                logger.store(LossQ=value_loss.item(), QVals=q_pi.data.numpy(), eps=epsilon)
 
         # syncs weights from online to target network
-        if t % target_update_period == 0:
+        if t % target_update_interval == 0:
             target.load_state_dict(main.state_dict())
 
         # End of epoch wrap-up
@@ -216,7 +217,7 @@ def dqn(env_id,
             logger.log_metrics_summary(key_values={"epoch": epoch, "envSteps": t, "time": logger.since('start')},
                                        key_stats={"EpRet": "min_max", "EpLen": "mean", "success": "mean",
                                                   "test/EpRet": "min_max", "test/EpLen": "mean", "test/success": "mean",
-                                                  "QVals": "min_max", "LossQ": "mean"})
+                                                  "eps": "mean", "QVals": "min_max", "LossQ": "mean"})
 
 
 if __name__ == '__main__':

@@ -95,7 +95,19 @@ def set_scientific_formatter(data, offset=None, scale=1, axis="x"):
     scale_str = ""
     # if scale is None:
     #     _, scale = get_dian(int(data_max - offset) // 50)
-    if scale == 'k':
+    if scale == 'n':
+        scale_str = scale
+        scale = 0.000_000_001
+    elif scale == 'u':
+        scale_str = scale
+        scale = 0.000_001
+    elif scale == 'm':
+        scale_str = scale
+        scale = 0.001
+    elif scale == 'pc' or scale == "%":
+        scale_str = "%"
+        scale = 0.01
+    elif scale == 'k':
         scale_str = scale
         scale = 1000
     elif scale == 'M':
@@ -154,9 +166,9 @@ def plot_area(df, xKey, *yKeys, k=40, label=None, labels=None, color=None, color
     elif x_format == "timedelta":
         set_timedelta_formatter(xs, **x_opts)
     if y_format == "scalar":
-        set_scientific_formatter(xs, **y_opts, axis="y")
+        set_scientific_formatter(ys, **y_opts, axis="y")
     elif y_format == "timedelta":
-        set_timedelta_formatter(xs, **y_opts)
+        set_timedelta_formatter(ys, **y_opts)
 
     plt.gca().spines['right'].set_visible(False)
     plt.gca().spines['top'].set_visible(False)
