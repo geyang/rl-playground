@@ -104,8 +104,8 @@ def set_scientific_formatter(data, offset=None, scale=1, axis="x"):
     elif scale == 'm':
         scale_str = scale
         scale = 0.001
-    elif scale == 'pc' or scale == "%":
-        scale_str = "%"
+    elif scale in ['pc', "%", 'cm']:
+        scale_str = scale
         scale = 0.01
     elif scale == 'k':
         scale_str = scale

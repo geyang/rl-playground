@@ -13,7 +13,7 @@ with doc:
         "ge_world:HMaze-discrete-v0",
     ]
     short_names = [d.split(':')[-1].replace("-discrete", "") for d in env_ids]
-    prefix = None
+    prefix = "/geyang/playground/2020/08-14/uvpn_baselines/dqn_maze/02.40.21"
 
 if __name__ == '__main__' and prefix:
     doc @ f"""
@@ -28,42 +28,38 @@ if __name__ == '__main__' and prefix:
 
     method = "dqn"
     i = 0
-    with doc.row():
-        for env_id, name in zip(env_ids, short_names):
+    for env_id, name in zip(env_ids, short_names):
+        with doc.row():
             plt.figure(figsize=(4.5, 2.8))
             plt.title(name)
             xKey = "__timestamp"
             yKey = "test/success/mean"
             success = loader.read_metrics(xKey, yKey, path=f"**/{name}/**/metrics.pkl")
             plot_area(success, xKey, yKey, label=method.upper(),
-                      color=COLORS[i % len(COLORS)], x_format="timedelta", y_opts={"scale": "pc"})
+                      color=COLORS[i % len(COLORS)], x_format="timedelta", y_opts={"scale": "%"})
 
-            plt.xlabel('Wallclock Time')
+            plt.xlabel('Wall-clock Time')
             plt.ylabel('Success')
+            plt.ylim(0, 1)
             # plt.legend(loc='center right', bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
-            doc.savefig(f"figures/{name}_steps.png", zoom="50%", bbox_inches='tight')
+            doc.savefig(f"figures/dqn_maze/{name}_success.png", zoom="50%", bbox_inches='tight')
             plt.close()
 
-            # plt.figure()
-            # plt.title(env_id)
-            #
-            # for i, method in enumerate(methods):
-            #     print(f'{env_id}/{method}')
-            #     yKey = "EpRet/mean" if method == 'ppo' else "test/EpRet/mean"
-            #     success = loader.read_metrics("time", yKey, path=f"**/{env_id}/{method}/**/metrics.pkl")
-            #     # print(success.head())
-            #     # config = loader.read_params("env_id")
-            #     plot_area(success, "time", yKey, label=method.upper(),
-            #               color=COLORS[i % len(COLORS)], x_format="timedelta", y_opts={"scale": "k"})
-            #
-            # # plt.xlim(0, 1800)
-            # plt.xlabel('Wall-clock Time')
-            # plt.ylabel('Reward')
+            plt.figure(figsize=(4.5, 2.8))
+            plt.title(name)
+            xKey = "__timestamp"
+            yKey = "test/dist/mean"
+            success = loader.read_metrics(xKey, yKey, path=f"**/{name}/**/metrics.pkl")
+            plot_area(success, xKey, yKey, label=method.upper(),
+                      color=COLORS[i % len(COLORS)], x_format="timedelta", y_opts={"scale": "cm"})
+
+            plt.xlabel('Wall-clock Time')
+            plt.ylabel('Distance to Goal')
             # plt.legend(loc='center right', bbox_to_anchor=(1.5, 0.5))
-            # plt.tight_layout()
-            # doc.savefig(f"figures/{name}_wall_clock.png", zoom="50%", bbox_inches="tight")
-            # plt.close()
+            plt.tight_layout()
+            doc.savefig(f"figures/dqn_maze/{name}_dist.png", zoom="50%", bbox_inches='tight')
+            plt.close()
 
     doc.flush()
 

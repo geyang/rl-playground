@@ -9,8 +9,15 @@ env_ids = [
     "ge_world:HMaze-discrete-v0",
 ]
 short_names = [d.split(':')[-1].replace("-discrete", "") for d in env_ids]
-prefix = None
+prefix = "/geyang/playground/2020/08-14/uvpn_baselines/dqn_maze_loose_goal/02.40.15"
 ```
+
+    Experiment: [[dqn_maze_loose_goal]](http://localhost:3001/geyang/playground/2020/08-14/uvpn_baselines/dqn_maze_loose_goal/02.40.15)
+    
+<div style="flex-wrap:wrap; display:flex; flex-direction:row; item-align:center;"><img style="align-self:center; zoom:50%;" src="figures/loose_goal/Maze-fixed-v0_success.png" width="None" height="None"/><img style="align-self:center; zoom:50%;" src="figures/loose_goal/Maze-fixed-v0_dist.png" width="None" height="None"/></div>
+<div style="flex-wrap:wrap; display:flex; flex-direction:row; item-align:center;"><img style="align-self:center; zoom:50%;" src="figures/loose_goal/Maze-v0_success.png" width="None" height="None"/><img style="align-self:center; zoom:50%;" src="figures/loose_goal/Maze-v0_dist.png" width="None" height="None"/></div>
+<div style="flex-wrap:wrap; display:flex; flex-direction:row; item-align:center;"><img style="align-self:center; zoom:50%;" src="figures/loose_goal/CMaze-v0_success.png" width="None" height="None"/><img style="align-self:center; zoom:50%;" src="figures/loose_goal/CMaze-v0_dist.png" width="None" height="None"/></div>
+<div style="flex-wrap:wrap; display:flex; flex-direction:row; item-align:center;"><img style="align-self:center; zoom:50%;" src="figures/loose_goal/HMaze-v0_success.png" width="None" height="None"/><img style="align-self:center; zoom:50%;" src="figures/loose_goal/HMaze-v0_dist.png" width="None" height="None"/></div>
 ``` python
 # launch training
 if not prefix:
@@ -33,7 +40,7 @@ if not prefix:
                           max_ep_len=50,
                           ac_kwargs=dict(hidden_sizes=[32, ] * 2),
                           gamma=0.985,
-                          target_update_period=1000,
+                          target_update_interval=1000,
                           seed=seed,
                           steps_per_epoch=4000,
                           epsilon_train=0.2,
@@ -44,7 +51,4 @@ if not prefix:
             jaynes.run(thunk)
 
     doc.print('Launched@', logger.prefix)
-```
-```
-Launched@ geyang/playground/2020/08-14/uvpn_baselines/dqn_maze_loose_goal/02.04.32/HMaze-v0/s500/19
 ```

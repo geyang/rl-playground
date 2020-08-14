@@ -66,10 +66,10 @@ def dqn(env_id,
                     charts:
                     - xKey: __timestamp
                       xFormat: time
-                      yKey: EpRet/mean
+                      yKey: dist/mean
                     - xKey: __timestamp
                       xFormat: time
-                      yKey: test/EpRet/mean
+                      yKey: EpRet/mean
                     - xKey: __timestamp
                       xFormat: time
                       yKey: test/success/mean
@@ -126,11 +126,11 @@ def dqn(env_id,
             while not (d or (ep_len == max_ep_len)):
                 # epsilon_eval used when evaluating the agent
                 act = get_action(*unpack(obs, obs_keys), eps=epsilon_eval)
-                obs, r, d, _ = test_env.step(act)
+                obs, r, d, info = test_env.step(act)
                 ep_ret += r
                 ep_len += 1
             success = False if ep_len == max_ep_len else d
-            logger.store(EpRet=ep_ret, EpLen=ep_len, success=success, prefix="test/")
+            logger.store(EpRet=ep_ret, EpLen=ep_len, success=success, dist=info['dist'], prefix="test/")
 
     total_steps = steps_per_epoch * epochs
 
@@ -144,7 +144,7 @@ def dqn(env_id,
     for t in range(total_steps):
         if done or traj['a'].__len__() == max_ep_len:
             if traj:
-                logger.store(EpRet=sum(traj['r']), EpLen=len(traj['a']), success=max(traj['done']))
+                logger.store(EpRet=sum(traj['r']), EpLen=len(traj['a']), success=max(traj['done']), dist=info['dist'])
             obs = env.reset()
             traj = defaultdict(list, {"x": [obs]})
 
@@ -158,7 +158,7 @@ def dqn(env_id,
         traj['a'].append(a)
 
         # Step the env
-        obs, r, done, _ = env.step(a)
+        obs, r, done, info = env.step(a)
         done = False if traj['a'].__len__() == max_ep_len else done
         traj['x'].append(obs)
         traj['r'].append(r)
