@@ -44,7 +44,7 @@ Deep Q-Network
 """
 
 
-def dqn(env_id, q_network=core.DQNetwork, ac_kwargs={}, seed=0, steps_per_epoch=5000, epochs=100,
+def dqn(env_id, q_network=core.QMlp, ac_kwargs={}, seed=0, steps_per_epoch=5000, epochs=100,
         replay_size=int(1e6), gamma=0.99, min_replay_history=20000, epsilon_decay_period=250000, epsilon_train=0.01,
         epsilon_eval=0.001, lr=1e-3, max_ep_len=1000, update_period=4, target_update_period=8000, batch_size=100,
         save_freq=1, ):

@@ -2,8 +2,13 @@ import numpy as np
 import gym
 import torch
 import torch.nn.functional as F
+from collections import defaultdict
 from firedup.algos.dqn import core
 from firedup.wrappers import env_fn
+
+"""
+An Enhanced Version of dqn, with better better coding style.
+"""
 
 
 class ReplayBuffer:
@@ -40,19 +45,18 @@ class ReplayBuffer:
 
 
 """
-Deep Q-Network + HER + Pixel input
+Deep Q-Network
 """
 
 
-def dqn(env_id,
-        state_key="x",
-        goal_key="goal",
-        q_network=core.DQNetwork, ac_kwargs={}, seed=0, steps_per_epoch=5000, epochs=100,
+def dqn(env_id, q_network=core.QMlp, ac_kwargs={}, seed=0, steps_per_epoch=5000, epochs=100,
         replay_size=int(1e6), gamma=0.99, min_replay_history=20000, epsilon_decay_period=250000, epsilon_train=0.01,
         epsilon_eval=0.001, lr=1e-3, max_ep_len=1000, update_period=4, target_update_period=8000, batch_size=100,
         save_freq=1, ):
+    __d = locals()
     from ml_logger import logger
-    logger.log_params(kwargs=locals())
+    logger.log_params(kwargs=__d)
+    logger.upload_file(__file__)
 
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -93,11 +97,16 @@ def dqn(env_id,
     # Initializing targets to match main variables
     target.load_state_dict(main.state_dict())
 
-    def get_action(o_s, o_g, epsilon):
+    def get_action(o, epsilon):
+        """Select an action from the set of available actions.
+        Chooses an action randomly with probability epsilon otherwise
+        act greedily according to the current Q-value estimates.
+        """
         if np.random.random() <= epsilon:
             return env.action_space.sample()
         else:
-            q_values = main(o_s, o_g)
+            q_values = main(torch.Tensor(o.reshape(1, -1)))
+            # return the action with highest Q-value for this observation
             return torch.argmax(q_values, dim=1).item()
 
     def test_agent(n=10):
@@ -110,46 +119,43 @@ def dqn(env_id,
                 ep_len += 1
             logger.store(TestEpRet=ep_ret, TestEpLen=ep_len)
 
-    logger.start('start', 'epoch')
-    obs, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
     total_steps = steps_per_epoch * epochs
 
+    logger.start('start', 'epoch')
+    # this is an online version
     # Main loop: collect experience in env and update/log each epoch
+    done, traj = True, None
     for t in range(total_steps):
+        if done or traj['a'].__len__() == max_ep_len:
+            if traj:
+                logger.store(EpRet=sum(traj['r']), EpLen=len(traj['a']))
+            obs = env.reset()
+            traj = defaultdict(list, {"x": [obs]})
+
         main.eval()
 
         # the epsilon value used for exploration during training
         epsilon = core.linearly_decaying_epsilon(
             epsilon_decay_period, t, min_replay_history, epsilon_train
         )
-        a = get_action(obs[state_key], obs[goal_key], epsilon)
+        a = get_action(obs, epsilon)
+        traj['a'].append(a)
 
         # Step the env
-        o2, r, d, _ = env.step(a)
-        ep_ret += r
-        ep_len += 1
+        obs, r, done, _ = env.step(a)
+        done = False if len(traj['a']) == max_ep_len else done
+        traj['x'].append(obs)
+        traj['r'].append(r)
+        traj['done'].append(done)
 
-        # Ignore the "done" signal if it comes from hitting the time
-        # horizon (that is, when it's an artificial terminal signal
-        # that isn't based on the agent's state)
-        d = False if ep_len == max_ep_len else d
-
-        # Store experience to replay buffer
-        replay_buffer.store(obs, a, r, o2, d)
-
-        # Super critical, easy to overlook step: make sure to update
-        # most recent observation!
-        obs = o2
-
-        if d or (ep_len == max_ep_len):
-            logger.store(EpRet=ep_ret, EpLen=ep_len)
-            obs, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
+        # todo: insert online HER relabeling here
+        replay_buffer.store(traj['x'][-1], a, r, obs, done)
 
         # train at the rate of update_period if enough training steps have been run
         if replay_buffer.size > min_replay_history and t % update_period == 0:
             main.train()
             batch = replay_buffer.sample_batch(batch_size)
-            (obs1, obs2, acts, rews, done) = (
+            (obs1, obs2, acts, rews, dones) = (
                 torch.Tensor(batch["obs1"]),
                 torch.Tensor(batch["obs2"]),
                 torch.Tensor(batch["acts"]),
@@ -160,7 +166,7 @@ def dqn(env_id,
             q_pi_targ, _ = target(obs2).max(1)
 
             # Bellman backup for Q function
-            backup = (rews + gamma * (1 - done) * q_pi_targ).detach()
+            backup = (rews + gamma * (1 - dones) * q_pi_targ).detach()
 
             # DQN loss
             value_loss = F.smooth_l1_loss(q_pi, backup)
@@ -193,7 +199,7 @@ def dqn(env_id,
 
 
 if __name__ == '__main__':
-    dqn("ge_world:CMaze-v0",
+    dqn("LunarLander-v2",
         ac_kwargs=dict(hidden_sizes=[64, ] * 2),
         gamma=0.99,
         seed=0,

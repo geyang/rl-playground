@@ -17,12 +17,12 @@ def linearly_decaying_epsilon(decay_period, step, warmup_steps, epsilon):
 
 class MLP(nn.Module):
     def __init__(
-        self,
-        layers,
-        activation=torch.tanh,
-        output_activation=None,
-        output_scale=1,
-        output_squeeze=False,
+            self,
+            layers,
+            activation=torch.tanh,
+            output_activation=None,
+            output_scale=1,
+            output_squeeze=False,
     ):
         super(MLP, self).__init__()
         self.layers = nn.ModuleList()
@@ -46,17 +46,24 @@ class MLP(nn.Module):
         return x.squeeze() if self.output_squeeze else x
 
 
-class DQNetwork(nn.Module):
-    def __init__(
-        self,
-        in_features,
-        action_space,
-        hidden_sizes=(400, 300),
-        activation=torch.relu,
-        output_activation=None,
-    ):
-        super(DQNetwork, self).__init__()
+class QMlp(nn.Module):
+    """
+    in_features should be the sum of all inputs feature dimensions
+    to the forward pass.
 
+    """
+
+    def __init__(
+            self,
+            in_features,
+            action_space,
+            hidden_sizes=(400, 300),
+            activation=torch.relu,
+            output_activation=None,
+    ):
+        super(QMlp, self).__init__()
+
+        assert isinstance(action_space, Discrete), "only supports Discrete action space"
         action_dim = action_space.n
 
         self.q = MLP(
@@ -65,8 +72,10 @@ class DQNetwork(nn.Module):
             output_activation=output_activation,
         )
 
-    def forward(self, x):
-        return self.q(x)
+    def forward(self, *inputs):
+        regular = torch.broadcast_tensors(*inputs)
+        block = torch.cat(regular, axis=-1)
+        return self.q(block)
 
-    def policy(self, x):
-        return torch.argmax(self.q(x), dim=1, keepdim=True)
+    def policy(self, *inputs):
+        return torch.argmax(self.q(*inputs), dim=1, keepdim=True)
