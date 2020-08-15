@@ -15,12 +15,10 @@ with doc:
     # methods = ['ppo', 'sac', 'td3', 'ddpg']
     methods = ['sac', 'td3', 'ddpg']
     env_ids = [
-        "ge_world:Maze-v0",
-        "ge_world:CMaze-v0",
-        "ge_world:HMaze-v0",
+        "metaworld:Maze-v0",
     ]
     short_names = [d.split(':')[-1] for d in env_ids]
-    prefix = "/geyang/playground/2020/08-15/uvpn_baselines/cont_maze/14.36.51"
+    prefix = None
 
 if __name__ == '__main__' and prefix:
     doc @ f"""
@@ -37,37 +35,35 @@ if __name__ == '__main__' and prefix:
     i = 0
     for env_id, name in zip(env_ids, short_names):
         with doc.row():
-            # plt.figure(figsize=(4.5, 2.8))
+            plt.figure(figsize=(4.5, 2.8))
             plt.title(name)
             xKey = "__timestamp"
             yKey = "test/success/mean"
-            for i, method in enumerate(methods):
-                success = loader.read_metrics(xKey, yKey, path=f"**/{name}/**/metrics.pkl")
-                plot_area(success, xKey, yKey, label=method.upper(),
-                          color=COLORS[i % len(COLORS)], x_format="timedelta", y_opts={"scale": "%"})
+            success = loader.read_metrics(xKey, yKey, path=f"**/{name}/**/metrics.pkl")
+            plot_area(success, xKey, yKey, label=method.upper(),
+                      color=COLORS[i % len(COLORS)], x_format="timedelta", y_opts={"scale": "%"})
 
             plt.xlabel('Wall-clock Time')
             plt.ylabel('Success')
             plt.ylim(0, 1)
-            plt.legend(loc='center right', bbox_to_anchor=(1.5, 0.5))
+            # plt.legend(loc='center right', bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
-            doc.savefig(f"figures/cont_maze/{name}_success.png", zoom="50%", bbox_inches='tight')
+            doc.savefig(f"figures/dqn_maze/{name}_success.png", zoom="50%", bbox_inches='tight')
             plt.close()
 
-            # plt.figure(figsize=(4.5, 2.8))
+            plt.figure(figsize=(4.5, 2.8))
             plt.title(name)
             xKey = "__timestamp"
             yKey = "test/dist/mean"
-            for i, method in enumerate(methods):
-                success = loader.read_metrics(xKey, yKey, path=f"**/{name}/**/metrics.pkl")
-                plot_area(success, xKey, yKey, label=method.upper(),
-                          color=COLORS[i % len(COLORS)], x_format="timedelta", y_opts={"scale": "cm"})
+            success = loader.read_metrics(xKey, yKey, path=f"**/{name}/**/metrics.pkl")
+            plot_area(success, xKey, yKey, label=method.upper(),
+                      color=COLORS[i % len(COLORS)], x_format="timedelta", y_opts={"scale": "cm"})
 
             plt.xlabel('Wall-clock Time')
             plt.ylabel('Distance to Goal')
-            plt.legend(loc='center right', bbox_to_anchor=(1.5, 0.5))
+            # plt.legend(loc='center right', bbox_to_anchor=(1.5, 0.5))
             plt.tight_layout()
-            doc.savefig(f"figures/cont_maze/{name}_dist.png", zoom="50%", bbox_inches='tight')
+            doc.savefig(f"figures/dqn_maze/{name}_dist.png", zoom="50%", bbox_inches='tight')
             plt.close()
 
     doc.flush()

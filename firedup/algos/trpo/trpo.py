@@ -154,7 +154,7 @@ def trpo(
     backtrack_iters=10,
     backtrack_coeff=0.8,
     lam=0.97,
-    max_ep_len=1000,
+    ep_limit=1000,
     logger_kwargs=dict(),
     save_freq=10,
     algo="trpo",
@@ -245,7 +245,7 @@ def trpo(
         lam (float): Lambda for GAE-Lambda. (Always between 0 and 1,
             close to 1.)
 
-        max_ep_len (int): Maximum length of trajectory / episode / rollout.
+        ep_limit (int): Maximum length of trajectory / episode / rollout.
 
         logger_kwargs (dict): Keyword args for EpochLogger.
 
@@ -423,7 +423,7 @@ def trpo(
             ep_ret += r
             ep_len += 1
 
-            terminal = d or (ep_len == max_ep_len)
+            terminal = d or (ep_len == ep_limit)
             if terminal or (t == local_steps_per_epoch - 1):
                 if not (terminal):
                     print("Warning: trajectory cut off by epoch at %d steps." % ep_len)

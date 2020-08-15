@@ -48,13 +48,16 @@ Soft Actor-Critic
 
 """
 
+_CONFIG = dict(charts=["EpRet/mean", "VVals/mean", "LogPi/mean"])
+
 
 def sac(
         env_id,
+        seed=0,
+        env_kwargs=dict(),
         wrappers=tuple(),
         actor_critic=core.ActorCritic,
         ac_kwargs=dict(),
-        seed=0,
         steps_per_epoch=5000,
         epochs=100,
         replay_size=int(1e6),
@@ -65,8 +68,10 @@ def sac(
         optimize_alpha=True,
         batch_size=100,
         start_steps=10000,
-        max_ep_len=1000,
+        ep_limit=1000,
         save_freq=1,
+        video_interval=None,
+        _config=_CONFIG
 ):
     """
 
@@ -140,27 +145,25 @@ def sac(
         start_steps (int): Number of steps for uniform-random action selection,
             before running real policy. Helps exploration.
 
-        max_ep_len (int): Maximum length of trajectory / episode / rollout.
-
-        logger_kwargs (dict): Keyword args for EpochLogger.
+        ep_limit (int): Maximum length of trajectory / episode / rollout.
 
         save_freq (int): How often (in terms of gap between epochs) to save
             the current policy and value function.
 
+        video_interval (int): saves the last epoch if -1, do not save if None,
+            otherwise by the integer interval
     """
     from ml_logger import logger
-    # logger.log_params(kwargs=locals())
-    logger.log_text("""
-                    charts:
-                    - EpRet/mean
-                    - VVals/mean
-                    - LogPi/mean
-                    """, ".charts.yml", True)
+    logger.upload_file(__file__)
 
-    torch.manual_seed(seed)
+    logger.save_yaml(_config, ".charts.yml")
+
     np.random.seed(seed)
+    torch.manual_seed(seed)
 
-    env, test_env = env_fn(env_id, *wrappers, seed=seed), env_fn(env_id, *wrappers, seed=seed + 100)
+    env = env_fn(env_id, *wrappers, **env_kwargs, seed=seed)
+    test_env = env_fn(env_id, *wrappers, **env_kwargs, seed=seed + 100)
+
     obs_dim = env.observation_space.shape[0]
     act_dim = env.action_space.shape[0]
 
@@ -182,7 +185,7 @@ def sac(
         for module in [main.policy, main.q1, main.q2, main.vf_mlp, main]
     )
     logger.print("Number of parameters: \t pi: {:d},\t q1: {:d},\t q2: {:d},"
-               "\t v: {:d},\t total: {:d}\n".format(*var_counts))
+                 "\t v: {:d},\t total: {:d}\n".format(*var_counts))
 
     # Policy train op
     # (has to be separate from value train op, because q1_pi appears in pi_loss)
@@ -209,22 +212,27 @@ def sac(
         pi, mu, _ = main.policy(torch.Tensor(o.reshape(1, -1)))
         return mu.detach().numpy()[0] if deterministic else pi.detach().numpy()[0]
 
-    def test_agent(n=10):
+    def test_agent(n=10, log_video=False, epoch=None):
+        frames = []
         for _ in range(n):
             o, r, d, ep_ret, ep_len = test_env.reset(), 0, False, 0, 0
-            while not (d or (ep_len == max_ep_len)):
+            while not (d or (ep_len == ep_limit)):
                 # Take deterministic actions at test time
-                o, r, d, _ = test_env.step(get_action(o, True))
+                o, r, d, info = test_env.step(get_action(o, True))
                 ep_ret += r
                 ep_len += 1
-            logger.store(TestEpRet=ep_ret, TestEpLen=ep_len)
+                if log_video:
+                    frames.append(test_env.render("rgb_array"))
+            logger.store(EpRet=ep_ret, EpLen=ep_len, **info, prefix="test/")
+            if log_video:
+                logger.save_video(frames, f"videos/test_{epoch}.mp4")
 
     logger.start('start', 'epoch')
     o, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
     total_steps = steps_per_epoch * epochs
 
     # Main loop: collect experience in env and update/log each epoch
-    for t in range(total_steps):
+    for t in range(total_steps + 1):
         """
         Until start_steps have elapsed, randomly sample actions
         from a uniform distribution for better exploration. Afterwards,
@@ -236,14 +244,14 @@ def sac(
             a = env.action_space.sample()
 
         # Step the env
-        o2, r, d, _ = env.step(a)
+        o2, r, d, info = env.step(a)
         ep_ret += r
         ep_len += 1
 
         # Ignore the "done" signal if it comes from hitting the time
         # horizon (that is, when it's an artificial terminal signal
         # that isn't based on the agent's state)
-        d = False if ep_len == max_ep_len else d
+        d = False if ep_len == ep_limit else d
 
         # Store experience to replay buffer
         replay_buffer.store(o, a, r, o2, d)
@@ -252,7 +260,7 @@ def sac(
         # most recent observation!
         o = o2
 
-        if d or (ep_len == max_ep_len):
+        if d or (ep_len == ep_limit):
             """
             Perform all SAC updates at the end of the trajectory.
             This is a slight difference from the SAC specified in the
@@ -260,13 +268,12 @@ def sac(
             """
             for _ in range(ep_len):
                 batch = replay_buffer.sample_batch(batch_size)
-                (obs1, obs2, acts, rews, done) = (
-                    torch.Tensor(batch["obs1"]),
-                    torch.Tensor(batch["obs2"]),
-                    torch.Tensor(batch["acts"]),
-                    torch.Tensor(batch["rews"]),
-                    torch.Tensor(batch["done"]),
-                )
+                obs1, obs2, acts, rews, done = (torch.Tensor(batch["obs1"]),
+                                                torch.Tensor(batch["obs2"]),
+                                                torch.Tensor(batch["acts"]),
+                                                torch.Tensor(batch["rews"]),
+                                                torch.Tensor(batch["done"]),
+                                                )
                 _, _, logp_pi, q1, q2, q1_pi, q2_pi, v = main(obs1, acts)
                 v_targ = target.vf_mlp(obs2)
 
@@ -325,7 +332,7 @@ def sac(
                     dtEpoch=logger.split('epoch')
                 )
 
-            logger.store(EpRet=ep_ret, EpLen=ep_len)
+            logger.store(EpRet=ep_ret, EpLen=ep_len, **info)
             o, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
 
         # End of epoch wrap-up
@@ -337,7 +344,7 @@ def sac(
             #     logger.save_state({"env": env}, main, None)
 
             # Test the performance of the deterministic version of the agent.
-            test_agent()
+            test_agent(log_video=video_interval and epoch % video_interval == 0, epoch=epoch)
 
             stats = {
                 "EpRet": "min_max",

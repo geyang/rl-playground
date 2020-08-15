@@ -109,9 +109,13 @@ with early stopping based on approximate KL
 """
 
 
-def ppo(env_id, wrappers=tuple(), actor_critic=core.ActorCritic, ac_kwargs=dict(), seed=0, steps_per_epoch=4000,
-        epochs=50, gamma=0.99, clip_ratio=0.2, pi_lr=3e-4, vf_lr=1e-3, train_pi_iters=80, train_v_iters=80, lam=0.97,
-        max_ep_len=1000, target_kl=0.01, save_freq=10, ):
+def ppo(env_id, seed=0, wrappers=tuple(),
+        actor_critic=core.ActorCritic, ac_kwargs=dict(), steps_per_epoch=4000,
+        epochs=50, gamma=0.99, clip_ratio=0.2, pi_lr=3e-4, vf_lr=1e-3, train_pi_iters=80, train_v_iters=80,
+        lam=0.97, ep_limit=1000, target_kl=0.01,
+        save_freq=10,
+        _config=None,
+        ):
     """
 
     Args:
@@ -171,7 +175,7 @@ def ppo(env_id, wrappers=tuple(), actor_critic=core.ActorCritic, ac_kwargs=dict(
         lam (float): Lambda for GAE-Lambda. (Always between 0 and 1,
             close to 1.)
 
-        max_ep_len (int): Maximum length of trajectory / episode / rollout.
+        ep_limit (int): Maximum length of trajectory / episode / rollout.
 
         target_kl (float): Roughly what KL divergence we think is appropriate
             between new and old policies after an update. This will get used
@@ -182,14 +186,13 @@ def ppo(env_id, wrappers=tuple(), actor_critic=core.ActorCritic, ac_kwargs=dict(
 
     """
     from ml_logger import logger
-    # logger.log_params(kwargs=locals())
+    logger.upload_file(__file__)
 
     if mpi.tools.is_primary():
-        logger.log_text("""
-                        charts:
-                        - yKey: EpRet/mean
-                          xKey: epoch
-                        """, ".charts.yml", True)
+        logger.save_yaml(_config, ".charts.yml")
+
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
     mpi.torch.setup()
 
@@ -310,11 +313,11 @@ def ppo(env_id, wrappers=tuple(), actor_critic=core.ActorCritic, ac_kwargs=dict(
             if mpi.tools.is_primary():
                 logger.store(VVals=v_t)
 
-            o, r, d, _ = env.step(a.detach().numpy()[0])
+            o, r, d, info = env.step(a.detach().numpy()[0])
             ep_ret += r
             ep_len += 1
 
-            terminal = d or ep_len == max_ep_len
+            terminal = d or ep_len == ep_limit
             if terminal or t == steps_per_epoch - 1:
                 if not terminal:
                     print("Warning: trajectory cut off by epoch at %d steps." % ep_len)
@@ -325,7 +328,7 @@ def ppo(env_id, wrappers=tuple(), actor_critic=core.ActorCritic, ac_kwargs=dict(
                 buf.finish_path(last_val)
                 if terminal:
                     # only save EpRet / EpLen if trajectory finished
-                    logger.store(EpRet=ep_ret, EpLen=ep_len)
+                    logger.store(EpRet=ep_ret, EpLen=ep_len, **info)
                 o, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
 
         # Save model

@@ -51,7 +51,7 @@ Deep Q-Network
 
 def dqn(env_id, q_network=core.QMlp, ac_kwargs={}, seed=0, steps_per_epoch=5000, epochs=100,
         replay_size=int(1e6), gamma=0.99, min_replay_history=20000, epsilon_decay_period=250000, epsilon_train=0.01,
-        epsilon_eval=0.001, lr=1e-3, max_ep_len=1000, update_interval=4, target_update_interval=8000, batch_size=100,
+        epsilon_eval=0.001, lr=1e-3, ep_limit=1000, update_interval=4, target_update_interval=8000, batch_size=100,
         save_freq=1, ):
     __d = locals()
     from ml_logger import logger
@@ -112,7 +112,7 @@ def dqn(env_id, q_network=core.QMlp, ac_kwargs={}, seed=0, steps_per_epoch=5000,
     def test_agent(n=10):
         for _ in range(n):
             o, r, d, ep_ret, ep_len = test_env.reset(), 0, False, 0, 0
-            while not (d or (ep_len == max_ep_len)):
+            while not (d or (ep_len == ep_limit)):
                 # epsilon_eval used when evaluating the agent
                 o, r, d, _ = test_env.step(get_action(o, epsilon_eval))
                 ep_ret += r
@@ -125,8 +125,8 @@ def dqn(env_id, q_network=core.QMlp, ac_kwargs={}, seed=0, steps_per_epoch=5000,
     # this is an online version
     # Main loop: collect experience in env and update/log each epoch
     done, traj = True, None
-    for t in range(total_steps):
-        if done or traj['a'].__len__() == max_ep_len:
+    for t in range(total_steps + 1):
+        if done or traj['a'].__len__() == ep_limit:
             if traj:
                 logger.store(EpRet=sum(traj['r']), EpLen=len(traj['a']))
             obs = env.reset()
@@ -143,7 +143,7 @@ def dqn(env_id, q_network=core.QMlp, ac_kwargs={}, seed=0, steps_per_epoch=5000,
 
         # Step the env
         obs, r, done, _ = env.step(a)
-        done = False if len(traj['a']) == max_ep_len else done
+        done = False if len(traj['a']) == ep_limit else done
         traj['x'].append(obs)
         traj['r'].append(r)
         traj['done'].append(done)

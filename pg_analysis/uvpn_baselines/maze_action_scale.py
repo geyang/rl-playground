@@ -42,7 +42,7 @@ if not prefix:
                                   env_kwargs=dict(act_scale=act_scale),
                                   obs_keys=("x", "goal"),
                                   her_k=1,
-                                  max_ep_len=200,
+                                  ep_limit=200,
                                   ac_kwargs=dict(hidden_sizes=[128, ] * 3),
                                   gamma=0.99,
                                   seed=seed,

@@ -53,7 +53,7 @@ def dqn(env_id,
         replay_size=int(1e6), gamma=0.99,
         min_replay_history=20000,
         epsilon_decay_period=250000, epsilon_train=0.01,
-        epsilon_eval=0.001, lr=1e-3, max_ep_len=1000,
+        epsilon_eval=0.001, lr=1e-3, ep_limit=1000,
         update_interval=4, target_update_interval=8000,
         batch_size=100, save_freq=1, ):
     from ml_logger import logger
@@ -108,7 +108,7 @@ def dqn(env_id,
     def test_agent(n=10):
         for _ in range(n):
             o, r, d, ep_ret, ep_len = test_env.reset(), 0, False, 0, 0
-            while not (d or (ep_len == max_ep_len)):
+            while not (d or (ep_len == ep_limit)):
                 # epsilon_eval used when evaluating the agent
                 o, r, d, _ = test_env.step(get_action(o, epsilon_eval))
                 ep_ret += r
@@ -176,7 +176,7 @@ def dqn(env_id,
         # Ignore the "done" signal if it comes from hitting the time
         # horizon (that is, when it's an artificial terminal signal
         # that isn't based on the agent's state)
-        d = False if ep_len == max_ep_len else d
+        d = False if ep_len == ep_limit else d
 
         # Store experience to replay buffer
         # replay_buffer.store(obs=obs, a=a, r=r, o2, d)
@@ -185,7 +185,7 @@ def dqn(env_id,
         # most recent observation!
         obs = o2
 
-        if d or (ep_len == max_ep_len):
+        if d or (ep_len == ep_limit):
             logger.store(EpRet=ep_ret, EpLen=ep_len)
             obs, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
 

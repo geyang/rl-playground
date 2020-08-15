@@ -45,13 +45,16 @@ Deep Deterministic Policy Gradient (DDPG)
 
 """
 
+_CONFIG = dict(charts=["EpRet/mean", "TestEpRet/mean", "QVals/mean", "LossQ/mean", "LossPi/mean", ])
+
 
 def ddpg(
         env_id,
+        seed=0,
+        env_kwargs=dict(),
         wrappers=tuple(),
         actor_critic=core.ActorCritic,
         ac_kwargs=dict(),
-        seed=0,
         steps_per_epoch=5000,
         epochs=100,
         replay_size=int(1e6),
@@ -62,8 +65,10 @@ def ddpg(
         batch_size=100,
         start_steps=10000,
         act_noise=0.1,
-        max_ep_len=1000,
+        ep_limit=1000,
         save_freq=1,
+        video_interval=None,
+        _config=_CONFIG
 ):
     """
 
@@ -122,28 +127,25 @@ def ddpg(
         act_noise (float): Stddev for Gaussian exploration noise added to
             policy at training time. (At test time, no noise is added.)
 
-        max_ep_len (int): Maximum length of trajectory / episode / rollout.
+        ep_limit (int): Maximum length of trajectory / episode / rollout.
 
         save_freq (int): How often (in terms of gap between epochs) to save
             the current policy and value function.
 
+        video_interval (int): saves the last epoch if -1, do not save if None,
+            otherwise by the integer interval
     """
     from ml_logger import logger
-    # logger.log_params(kwargs=locals())
-    logger.log_text("""
-                    charts:
-                    - EpRet/mean
-                    - TestEpRet/mean
-                    - QVals/mean
-                    - LossQ/mean
-                    - LossPi/mean
-                    """, ".charts.yml", True)
+    logger.upload_file(__file__)
 
-    # torch.autograd.set_detect_anomaly(True)
-    torch.manual_seed(seed)
+    logger.save_yaml(_config, ".charts.yml")
+
     np.random.seed(seed)
+    torch.manual_seed(seed)
 
-    env, test_env = env_fn(env_id, *wrappers, seed=seed), env_fn(env_id, *wrappers, seed=seed + 100)
+    env = env_fn(env_id, *wrappers, **env_kwargs, seed=seed)
+    test_env = env_fn(env_id, *wrappers, **env_kwargs, seed=seed + 100)
+
     obs_dim = env.observation_space.shape[0]
     act_dim = env.action_space.shape[0]
 
@@ -181,22 +183,27 @@ def ddpg(
         a = pi.detach().numpy()[0] + noise_scale * np.random.randn(act_dim)
         return np.clip(a, -act_limit, act_limit)
 
-    def test_agent(n=10):
+    def test_agent(n=10, log_video=False, epoch=None):
+        frames = []
         for _ in range(n):
             o, r, d, ep_ret, ep_len = test_env.reset(), 0, False, 0, 0
-            while not (d or (ep_len == max_ep_len)):
-                # Take deterministic actions at test time (noise_scale=0)
-                o, r, d, _ = test_env.step(get_action(o, 0))
+            while not (d or (ep_len == ep_limit)):
+                # Take deterministic actions at test time
+                o, r, d, info = test_env.step(get_action(o, True))
                 ep_ret += r
                 ep_len += 1
-            logger.store_metrics(TestEpRet=ep_ret, TestEpLen=ep_len)
+                if log_video:
+                    frames.append(test_env.render("rgb_array"))
+            logger.store(EpRet=ep_ret, EpLen=ep_len, **info, prefix="test/")
+            if log_video:
+                logger.save_video(frames, f"videos/test_{epoch}.mp4")
 
     logger.start("start")
     o, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
     total_steps = steps_per_epoch * epochs
 
     # Main loop: collect experience in env and update/log each epoch
-    for t in range(total_steps):
+    for t in range(total_steps + 1):
         main.eval()
         """
         Until start_steps have elapsed, randomly sample actions
@@ -209,14 +216,14 @@ def ddpg(
             a = env.action_space.sample()
 
         # Step the env
-        o2, r, d, _ = env.step(a)
+        o2, r, d, info = env.step(a)
         ep_ret += r
         ep_len += 1
 
         # Ignore the "done" signal if it comes from hitting the time
         # horizon (that is, when it's an artificial terminal signal
         # that isn't based on the agent's state)
-        d = False if ep_len == max_ep_len else d
+        d = False if ep_len == ep_limit else d
 
         # Store experience to replay buffer
         replay_buffer.store(o, a, r, o2, d)
@@ -225,7 +232,7 @@ def ddpg(
         # most recent observation!
         o = o2
 
-        if d or (ep_len == max_ep_len):
+        if d or (ep_len == ep_limit):
             main.train()
             """
             Perform all DDPG updates at the end of the trajectory,
@@ -233,7 +240,7 @@ def ddpg(
             """
             for _ in range(ep_len):
                 batch = replay_buffer.sample_batch(batch_size)
-                (obs1, obs2, acts, rews, done) = (
+                obs1, obs2, acts, rews, done = (
                     torch.Tensor(batch["obs1"]),
                     torch.Tensor(batch["obs2"]),
                     torch.Tensor(batch["acts"]),
@@ -268,7 +275,7 @@ def ddpg(
                         polyak * p_target.data + (1 - polyak) * p_main.data
                     )
 
-            logger.store(EpRet=ep_ret, EpLen=ep_len)
+            logger.store(EpRet=ep_ret, EpLen=ep_len, **info)
             o, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
 
         # End of epoch wrap-up
@@ -280,7 +287,7 @@ def ddpg(
             #     logger.save_state({"env": env}, main, None)
 
             # Test the performance of the deterministic version of the agent.
-            test_agent()
+            test_agent(log_video=video_interval and epoch % video_interval == 0, epoch=epoch)
 
             # Log info about epoch
             logger.log_metrics_summary(

@@ -83,7 +83,7 @@ with doc:
                               replay_size=40_000,
                               her_k=1,
                               optim_epochs=1,
-                              max_ep_len=50,
+                              ep_limit=50,
                               ac_kwargs=dict(hidden_sizes=[32, ] * 2),
                               gamma=0.985,
                               target_update_interval=1000,

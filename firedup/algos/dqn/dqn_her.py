@@ -39,43 +39,38 @@ class SimpleBuffer:
 Deep Q-Network
 """
 
+_CONFIG = dict(charts=['EpRet/mean', 'LossQ/mean'])
+
 
 def dqn(env_id,
+        seed=0,
         env_kwargs={},
         obs_keys=None,  # we support slice, str etc.
         her_k=None,
         optim_epochs=1,
-        q_network=core.QMlp, ac_kwargs={}, seed=0, steps_per_epoch=5000, epochs=100,
+        q_network=core.QMlp, ac_kwargs={},
+        steps_per_epoch=5000,
+        epochs=100,
         replay_size=int(1e6), gamma=0.99, min_replay_history=20000,
         epsilon_decay_period=250000, epsilon_train=0.01,
         epsilon_eval=0.001,
         lr=1e-3, batch_size=100, update_interval=4,
-        max_ep_len=1000, target_update_interval=8000,
-        save_freq=1, ):
-    __d = locals()
+        ep_limit=1000, target_update_interval=8000,
+        # checkpoint and logging
+        save_freq=1,
+        video_interval=None,
+        # dashboard
+        _config=_CONFIG,
+        ):
     from ml_logger import logger
-    logger.log_params(kwargs=__d)
     logger.upload_file(__file__)
+
+    logger.save_yaml(_config, ".charts.yml")
 
     assert min_replay_history < replay_size, "min replay history need to be smaller than the buffer size"
 
-    torch.manual_seed(seed)
     np.random.seed(seed)
-
-    logger.log_text("""
-                    charts:
-                    - xKey: __timestamp
-                      xFormat: time
-                      yKey: dist/mean
-                    - xKey: __timestamp
-                      xFormat: time
-                      yKey: EpRet/mean
-                    - xKey: __timestamp
-                      xFormat: time
-                      yKey: test/success/mean
-                    - xKey: epoch
-                      yKey: LossQ/mean
-                    """, ".charts.yml", dedent=True, overwrite=True)
+    torch.manual_seed(seed)
 
     env = env_fn(env_id, seed=seed, **env_kwargs)
     test_env = env_fn(env_id, seed=seed + 100, **env_kwargs)
@@ -120,17 +115,22 @@ def dqn(env_id,
             # return the action with highest Q-value for this observation
             return torch.argmax(q_values, dim=-1).item()
 
-    def test_agent(n=10):
+    def test_agent(n=10, log_video=False, epoch=None):
+        frames = []
         for _ in range(n):
             obs, r, d, ep_ret, ep_len = test_env.reset(), 0, False, 0, 0
-            while not (d or (ep_len == max_ep_len)):
+            while not (d or (ep_len == ep_limit)):
                 # epsilon_eval used when evaluating the agent
                 act = get_action(*unpack(obs, obs_keys), eps=epsilon_eval)
                 obs, r, d, info = test_env.step(act)
                 ep_ret += r
                 ep_len += 1
-            success = False if ep_len == max_ep_len else d
-            logger.store(EpRet=ep_ret, EpLen=ep_len, success=success, dist=info['dist'], prefix="test/")
+                if log_video:
+                    frames.append(test_env.render("rgb_array"))
+            # success = False if ep_len == ep_limit else d
+            logger.store(EpRet=ep_ret, EpLen=ep_len, **info, prefix="test/")
+            if log_video:
+                logger.save_video(frames, f"videos/test_{epoch}.mp4")
 
     total_steps = steps_per_epoch * epochs
 
@@ -141,10 +141,10 @@ def dqn(env_id,
     # this is an online version
     # Main loop: collect experience in env and update/log each epoch
     done, traj = True, None
-    for t in range(total_steps):
-        if done or traj['a'].__len__() == max_ep_len:
+    for t in range(total_steps + 1):
+        if done or traj['a'].__len__() == ep_limit:
             if traj:
-                logger.store(EpRet=sum(traj['r']), EpLen=len(traj['a']), success=max(traj['done']), dist=info['dist'])
+                logger.store(EpRet=sum(traj['r']), EpLen=len(traj['a']), **info)
             obs = env.reset()
             traj = defaultdict(list, {"x": [obs]})
 
@@ -159,7 +159,7 @@ def dqn(env_id,
 
         # Step the env
         obs, r, done, info = env.step(a)
-        done = False if traj['a'].__len__() == max_ep_len else done
+        done = False if traj['a'].__len__() == ep_limit else done
         traj['x'].append(obs)
         traj['r'].append(r)
         traj['done'].append(done)
@@ -211,7 +211,7 @@ def dqn(env_id,
             #     logger.save_state({"env": env}, main, None)
 
             # Test the performance of the deterministic version of the agent.
-            test_agent()
+            test_agent(log_video=video_interval and epoch % video_interval == 0, epoch=epoch)
 
             # Log info about epoch
             logger.log_metrics_summary(key_values={"epoch": epoch, "envSteps": t, "time": logger.since('start')},

@@ -13,7 +13,7 @@ with doc:
         "ge_world:HMaze-discrete-v0",
     ]
     short_names = [d.split(':')[-1].replace("-discrete", "") for d in env_ids]
-    prefix = "/geyang/playground/2020/08-14/uvpn_baselines/dqn_maze/02.40.21"
+    prefix = None  # "/geyang/playground/2020/08-14/uvpn_baselines/dqn_maze/02.40.21"
 
 if __name__ == '__main__' and prefix:
     doc @ f"""
@@ -78,6 +78,8 @@ with doc:
 
         for env_id, env_name in zip(env_ids, short_names):
             for seed in [100, 200, 300, 400, 500]:
+                video_interval = 5 if seed == 100 else None
+                charts = [dict(type="video", glob="**/*.mp4")] if seed == 100 else []
                 thunk = instr(dqn,
                               env_id=env_id,
                               env_kwargs=dict(r=0.02),
@@ -85,7 +87,7 @@ with doc:
                               replay_size=40_000,
                               her_k=1,
                               optim_epochs=1,
-                              max_ep_len=50,
+                              ep_limit=50,
                               ac_kwargs=dict(hidden_sizes=[32, ] * 2),
                               gamma=0.985,
                               target_update_interval=1000,
@@ -93,7 +95,9 @@ with doc:
                               steps_per_epoch=4000,
                               epsilon_train=0.2,
                               epsilon_decay_period=200_000,
-                              epochs=100,
+                              epochs=70,
+                              video_interval=video_interval,
+                              _config=dict(charts=["dist/mean", "success/mean", "EpRet/mean", *charts]),
                               _job_prefix="debug" if debug else None,
                               _job_postfix=f"{env_name}/s{seed}")
                 jaynes.run(thunk)
