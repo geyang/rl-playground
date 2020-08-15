@@ -12,8 +12,8 @@ short_names = [d.split(':')[-1].replace("-discrete", "") for d in env_ids]
 prefix = "/geyang/playground/2020/08-14/uvpn_baselines/dqn_maze/02.40.21"
 ```
 
-    Experiment: [[dqn_maze]](http://localhost:3001/geyang/playground/2020/08-14/uvpn_baselines/dqn_maze/02.40.21)
-    
+Experiment: [[dqn_maze]](http://localhost:3001/geyang/playground/2020/08-14/uvpn_baselines/dqn_maze/02.40.21)
+
 <div style="flex-wrap:wrap; display:flex; flex-direction:row; item-align:center;"><img style="align-self:center; zoom:50%;" src="figures/dqn_maze/Maze-fixed-v0_success.png" width="None" height="None"/><img style="align-self:center; zoom:50%;" src="figures/dqn_maze/Maze-fixed-v0_dist.png" width="None" height="None"/></div>
 <div style="flex-wrap:wrap; display:flex; flex-direction:row; item-align:center;"><img style="align-self:center; zoom:50%;" src="figures/dqn_maze/Maze-v0_success.png" width="None" height="None"/><img style="align-self:center; zoom:50%;" src="figures/dqn_maze/Maze-v0_dist.png" width="None" height="None"/></div>
 <div style="flex-wrap:wrap; display:flex; flex-direction:row; item-align:center;"><img style="align-self:center; zoom:50%;" src="figures/dqn_maze/CMaze-v0_success.png" width="None" height="None"/><img style="align-self:center; zoom:50%;" src="figures/dqn_maze/CMaze-v0_dist.png" width="None" height="None"/></div>

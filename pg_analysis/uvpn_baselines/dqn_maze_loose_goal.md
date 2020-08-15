@@ -12,8 +12,8 @@ short_names = [d.split(':')[-1].replace("-discrete", "") for d in env_ids]
 prefix = "/geyang/playground/2020/08-14/uvpn_baselines/dqn_maze_loose_goal/02.40.15"
 ```
 
-    Experiment: [[dqn_maze_loose_goal]](http://localhost:3001/geyang/playground/2020/08-14/uvpn_baselines/dqn_maze_loose_goal/02.40.15)
-    
+Experiment: [[dqn_maze_loose_goal]](http://localhost:3001/geyang/playground/2020/08-14/uvpn_baselines/dqn_maze_loose_goal/02.40.15)
+
 <div style="flex-wrap:wrap; display:flex; flex-direction:row; item-align:center;"><img style="align-self:center; zoom:50%;" src="figures/loose_goal/Maze-fixed-v0_success.png" width="None" height="None"/><img style="align-self:center; zoom:50%;" src="figures/loose_goal/Maze-fixed-v0_dist.png" width="None" height="None"/></div>
 <div style="flex-wrap:wrap; display:flex; flex-direction:row; item-align:center;"><img style="align-self:center; zoom:50%;" src="figures/loose_goal/Maze-v0_success.png" width="None" height="None"/><img style="align-self:center; zoom:50%;" src="figures/loose_goal/Maze-v0_dist.png" width="None" height="None"/></div>
 <div style="flex-wrap:wrap; display:flex; flex-direction:row; item-align:center;"><img style="align-self:center; zoom:50%;" src="figures/loose_goal/CMaze-v0_success.png" width="None" height="None"/><img style="align-self:center; zoom:50%;" src="figures/loose_goal/CMaze-v0_dist.png" width="None" height="None"/></div>
