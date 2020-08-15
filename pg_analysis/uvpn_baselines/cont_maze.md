@@ -23,7 +23,7 @@ Experiment: [[cont_maze]](http://localhost:3001/geyang/playground/2020/08-15/uvp
 <div style="flex-wrap:wrap; display:flex; flex-direction:row; item-align:center;"><img style="align-self:center; zoom:50%;" src="figures/cont_maze/Maze-v0_success.png" width="None" height="None"/><img style="align-self:center; zoom:50%;" src="figures/cont_maze/Maze-v0_dist.png" width="None" height="None"/></div>
 <div style="flex-wrap:wrap; display:flex; flex-direction:row; item-align:center;"><img style="align-self:center; zoom:50%;" src="figures/cont_maze/CMaze-v0_success.png" width="None" height="None"/><img style="align-self:center; zoom:50%;" src="figures/cont_maze/CMaze-v0_dist.png" width="None" height="None"/></div>
 <div style="flex-wrap:wrap; display:flex; flex-direction:row; item-align:center;"><img style="align-self:center; zoom:50%;" src="figures/cont_maze/HMaze-v0_success.png" width="None" height="None"/><img style="align-self:center; zoom:50%;" src="figures/cont_maze/HMaze-v0_dist.png" width="None" height="None"/></div>
-``` python
+```python
 if not prefix:
     import jaynes
     from firedup.algos.ppo.ppo import ppo
