@@ -27,7 +27,7 @@ if __name__ == '__main__':
                 a = env.action_space.sample()  # Sample an action
                 for i in range(5):
                     obs, reward, done, info = env.step(a)  # Step the environment with the sampled
-                    img = env.render("rgb", width=240, height=160)
+                    img = env.render("rgb", width=72, height=48)
                     frames.append(img)
                     rewards.append(rewards)
 

@@ -12,7 +12,7 @@ for task_name in tasks:
     ml1 = metaworld.ML1(task_name)  # Construct the benchmark, sampling tasks
 
     frames = []
-    
+
     env = ml1.train_classes[task_name]()  # Create an environment with task `pick_place`
     env = RenderEnv(env)
     for t_id, task in enumerate(ml1.train_tasks):
@@ -21,7 +21,7 @@ for task_name in tasks:
         a = env.action_space.sample()  # Sample an action
         for i in range(5):
             obs, reward, done, info = env.step(a)  # Step the environment with the sampled
-            img = env.render("rgb", width=240, height=160)
+            img = env.render("rgb", width=72, height=48)
             frames.append(img)
             rewards.append(rewards)
 
