@@ -13,7 +13,7 @@ with doc:
         "ge_world:HMaze-discrete-v0",
     ]
     short_names = [d.split(':')[-1].replace("-discrete", "") for d in env_ids]
-    prefix = None  # "/geyang/playground/2020/08-14/uvpn_baselines/dqn_maze/02.40.21"
+    prefix = "/geyang/playground/2020/08-15/uvpn_baselines/dqn_maze/17.12.25"
 
 if __name__ == '__main__' and prefix:
     doc @ f"""

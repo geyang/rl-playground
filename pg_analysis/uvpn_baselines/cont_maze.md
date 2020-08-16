@@ -6,7 +6,7 @@ Include ppo, sac, td3 and ddpg.
 - [ ] add goal-conditioning
 - [ ] add her
 
-``` python
+```python
 # methods = ['ppo', 'sac', 'td3', 'ddpg']
 methods = ['sac', 'td3', 'ddpg']
 env_ids = [
@@ -15,15 +15,15 @@ env_ids = [
     "ge_world:HMaze-v0",
 ]
 short_names = [d.split(':')[-1] for d in env_ids]
-prefix = "/geyang/playground/2020/08-15/uvpn_baselines/cont_maze/14.36.51"
+prefix = "/geyang/playground/2020/08-15/uvpn_baselines/cont_maze/17.13.12"
 ```
 
-Experiment: [[cont_maze]](http://localhost:3001/geyang/playground/2020/08-15/uvpn_baselines/cont_maze/14.36.51)
+Experiment: [[cont_maze]](http://localhost:3001/geyang/playground/2020/08-15/uvpn_baselines/cont_maze/17.13.12)
 
 <div style="flex-wrap:wrap; display:flex; flex-direction:row; item-align:center;"><img style="align-self:center; zoom:50%;" src="figures/cont_maze/Maze-v0_success.png" width="None" height="None"/><img style="align-self:center; zoom:50%;" src="figures/cont_maze/Maze-v0_dist.png" width="None" height="None"/></div>
 <div style="flex-wrap:wrap; display:flex; flex-direction:row; item-align:center;"><img style="align-self:center; zoom:50%;" src="figures/cont_maze/CMaze-v0_success.png" width="None" height="None"/><img style="align-self:center; zoom:50%;" src="figures/cont_maze/CMaze-v0_dist.png" width="None" height="None"/></div>
 <div style="flex-wrap:wrap; display:flex; flex-direction:row; item-align:center;"><img style="align-self:center; zoom:50%;" src="figures/cont_maze/HMaze-v0_success.png" width="None" height="None"/><img style="align-self:center; zoom:50%;" src="figures/cont_maze/HMaze-v0_dist.png" width="None" height="None"/></div>
-``` python
+```python
 if not prefix:
     import jaynes
     from firedup.algos.ppo.ppo import ppo
@@ -37,7 +37,7 @@ if not prefix:
     for method in methods:
         for env_id, name in zip(env_ids, short_names):
             for seed in [100, 200, 300, 400, 500]:
-                video_interval = 5 if seed == 100 else None
+                video_interval = 1 if seed == 100 else None
                 charts = [dict(type="video", glob="**/*.mp4")] if seed == 100 else []
                 thunk = instr(eval(method),
                               env_id=env_id,
@@ -47,7 +47,7 @@ if not prefix:
                               gamma=0.99,
                               ep_limit=50,
                               steps_per_epoch=4000,
-                              epochs=500 if method == "ppo" else 50,
+                              epochs=500 if method == "ppo" else 10,
                               video_interval=video_interval,
                               _config=dict(charts=["success/mean", "dist/mean", *charts]),
                               _job_postfix=f"{name}/{method}")

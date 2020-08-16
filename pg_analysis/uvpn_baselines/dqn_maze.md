@@ -1,7 +1,7 @@
 
 # DQN result on Maze (discrete) 
 
-``` python
+```python
 env_ids = [
     "ge_world:Maze-fixed-discrete-v0",
     "ge_world:Maze-discrete-v0",
@@ -9,12 +9,19 @@ env_ids = [
     "ge_world:HMaze-discrete-v0",
 ]
 short_names = [d.split(':')[-1].replace("-discrete", "") for d in env_ids]
-prefix = None  # "/geyang/playground/2020/08-14/uvpn_baselines/dqn_maze/02.40.21"
+prefix = "/geyang/playground/2020/08-15/uvpn_baselines/dqn_maze/17.12.25"
 ```
+
+Experiment: [[dqn_maze]](http://localhost:3001/geyang/playground/2020/08-15/uvpn_baselines/dqn_maze/17.12.25)
+
+<div style="flex-wrap:wrap; display:flex; flex-direction:row; item-align:center;"><img style="align-self:center; zoom:50%;" src="figures/dqn_maze/Maze-fixed-v0_success.png" width="None" height="None"/><img style="align-self:center; zoom:50%;" src="figures/dqn_maze/Maze-fixed-v0_dist.png" width="None" height="None"/></div>
+<div style="flex-wrap:wrap; display:flex; flex-direction:row; item-align:center;"><img style="align-self:center; zoom:50%;" src="figures/dqn_maze/Maze-v0_success.png" width="None" height="None"/><img style="align-self:center; zoom:50%;" src="figures/dqn_maze/Maze-v0_dist.png" width="None" height="None"/></div>
+<div style="flex-wrap:wrap; display:flex; flex-direction:row; item-align:center;"><img style="align-self:center; zoom:50%;" src="figures/dqn_maze/CMaze-v0_success.png" width="None" height="None"/><img style="align-self:center; zoom:50%;" src="figures/dqn_maze/CMaze-v0_dist.png" width="None" height="None"/></div>
+<div style="flex-wrap:wrap; display:flex; flex-direction:row; item-align:center;"><img style="align-self:center; zoom:50%;" src="figures/dqn_maze/HMaze-v0_success.png" width="None" height="None"/><img style="align-self:center; zoom:50%;" src="figures/dqn_maze/HMaze-v0_dist.png" width="None" height="None"/></div>
 
 Launch Script: 
 
-``` python
+```python
 # launch training
 if not prefix:
     import jaynes
@@ -51,7 +58,4 @@ if not prefix:
             jaynes.run(thunk)
 
     doc.print('Launching@', logger.prefix)
-```
-```
-Launching@ geyang/playground/2020/08-15/uvpn_baselines/dqn_maze/14.37.59/HMaze-v0/s500/19
 ```
