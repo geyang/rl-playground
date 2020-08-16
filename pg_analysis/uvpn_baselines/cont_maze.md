@@ -31,9 +31,9 @@ if not prefix:
     from firedup.algos.td3.td3 import td3
     from firedup.algos.ddpg.ddpg import ddpg
     from pg_experiments import instr
-
+    
     jaynes.config("local" if "pydevd" in sys.modules else "cpu-mars")
-
+    
     for method in methods:
         for env_id, name in zip(env_ids, short_names):
             for seed in [100, 200, 300, 400, 500]:
