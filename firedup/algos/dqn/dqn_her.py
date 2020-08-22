@@ -130,7 +130,7 @@ def dqn(env_id,
             # success = False if ep_len == ep_limit else d
             logger.store(EpRet=ep_ret, EpLen=ep_len, **info, prefix="test/")
             if log_video:
-                logger.save_video(frames, f"videos/test_{epoch}.mp4")
+                logger.save_video(frames, f"videos/test_{epoch:04d}.mp4")
 
     total_steps = steps_per_epoch * epochs
 

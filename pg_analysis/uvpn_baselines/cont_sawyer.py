@@ -102,21 +102,22 @@ with doc:
 
         for method in methods:
             for env_id, name, t_kwargs in zip(env_ids, short_names, test_kwargses):
-                for seed in [100, 200, 300, 400, 500]:
-                    video_interval = 1 if seed == 100 else None
-                    charts = [dict(type="video", glob="**/*.mp4")] if seed == 100 else []
+                for seed in [100, 200, 300]:
+                    # video_interval = 1 if seed == 100 else None
+                    video_interval = 5
                     thunk = instr(eval(method),
                                   env_id=env_id,
                                   seed=seed,
-                                  # test_env_kwargs=t_kwargs,
+                                  test_env_kwargs=t_kwargs,
                                   wrappers=(FlatGoalEnv,),
-                                  ac_kwargs=dict(hidden_sizes=[128, ] * 3),
-                                  gamma=0.99,
+                                  ac_kwargs=dict(hidden_sizes=[20, ] * 4),
+                                  gamma=0.985,
                                   ep_limit=50,
                                   steps_per_epoch=4000,
-                                  epochs=500 if method == "ppo" else 10,
+                                  epochs=500,
                                   video_interval=video_interval,
-                                  _config=dict(charts=["success/mean", "dist/mean", *charts]),
+                                  _config=dict(charts=["success/mean", "dist/mean",
+                                                       dict(type="video", glob="**/*.mp4")]),
                                   _job_postfix=f"{name}/{method}")
 
                     jaynes.run(thunk)

@@ -209,7 +209,7 @@ def td3(env_id,
                     frames.append(test_env.render("rgb_array"))
             logger.store(EpRet=ep_ret, EpLen=ep_len, **info, prefix="test/")
             if log_video:
-                logger.save_video(frames, f"videos/test_{epoch}.mp4")
+                logger.save_video(frames, f"videos/test_{epoch:04d}.mp4")
 
     logger.start('start', 'epoch')
     o, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0

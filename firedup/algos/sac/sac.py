@@ -57,8 +57,11 @@ def sac(
         env_kwargs=dict(),
         wrappers=tuple(),
         test_env_kwargs=None,
+        ep_limit=1000,
         actor_critic=core.ActorCritic,
         ac_kwargs=dict(),
+        start_steps=10000,
+        batch_size=100,
         steps_per_epoch=5000,
         epochs=100,
         replay_size=int(1e6),
@@ -67,9 +70,6 @@ def sac(
         lr=1e-3,
         alpha=0.2,
         optimize_alpha=True,
-        batch_size=100,
-        start_steps=10000,
-        ep_limit=1000,
         save_freq=1,
         video_interval=None,
         _config=_CONFIG
@@ -227,7 +227,7 @@ def sac(
                     frames.append(test_env.render("rgb_array"))
             logger.store(EpRet=ep_ret, EpLen=ep_len, **info, prefix="test/")
             if log_video:
-                logger.save_video(frames, f"videos/test_{epoch}.mp4")
+                logger.save_video(frames, f"videos/test_{epoch:04d}.mp4")
 
     logger.start('start', 'epoch')
     o, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
