@@ -21,25 +21,24 @@ if __name__ == '__main__':
     Then everything is just regular stuff
     """
 
-    doc.pre @ """yaml
-    box-close-v1: <class 'metaworld.envs.mujoco.sawyer_xyz.sawyer_box_close.SawyerBoxCloseEnv'>
-    bin-picking-v1: <class 'metaworld.envs.mujoco.sawyer_xyz.sawyer_bin_picking.SawyerBinPickingEnv'>
-    """
-
     import metaworld
     from env_wrappers.metaworld import RenderEnv
 
     test_env_classes = {}
     with doc:
-        rewards = []
+        envs = {}
         for task_name in tasks:
             ml1 = metaworld.MT1(task_name)  # Construct the benchmark, sampling tasks
 
             Env = ml1.train_classes[task_name]
             test_env_classes[task_name] = Env
-            doc.text(f"{task_name}: {Env}", sep="\n")
+            envs[task_name] = Env.__name__
 
-    with doc, doc.row(wrap=False):
+        doc("The classes are located at:")
+        doc.yaml(envs)
+
+    with doc, doc.row() as row:
+        rewards = []
         for task_name, Env in test_env_classes.items():
             ml1 = metaworld.MT1(task_name)  # Construct the benchmark, sampling tasks
 
@@ -58,7 +57,7 @@ if __name__ == '__main__':
                     frames.append(img)
                     rewards.append(r)
 
-            doc.video(frames, f"videos/{task_name}.gif", caption=task_name, width=240, height=160)
+            row.video(frames, f"videos/{task_name}.gif", caption=task_name, width=240, height=160)
             env.close()
 
     with doc @ "Now show the reward distribution":

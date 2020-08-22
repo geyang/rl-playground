@@ -1,39 +1,48 @@
+import gym
 import sys
-from cmx import doc
 
-from env_wrappers.flat_env import FlatEnv, FlatGoalEnv
+from cmx import doc
+from env_wrappers.flat_env import FlatEnv
 
 doc @ """
-# Continuous Control Baselines with Sawyer Robot
-
-use frame_skip = 4
+# Continuous Control Baselines with Maze Environments
 
 Include ppo, sac, td3 and ddpg.
 
 - [ ] add goal-conditioning
 - [ ] add her
 
-There is some inconsistency between the definition of the observation_space
-and the actual observations.
+The default `in_slot` is set to 10% of the time
 """
 with doc:
+    env_id = "ge_world:Peg2D-v0"
+    env = gym.make(env_id, free=False, obs_keys=['x', 'goal'])
+
+doc.yaml({k: f"Shape{v.shape}" for k, v in env.observation_space.spaces.items()})
+
+env.seed(100)
+with doc.row() as row:
+    for i in range(5):
+        obs = env.reset()
+        img = env.render("rgb", width=100, height=100)
+        row.image(img)
+
+with doc("We show the initial position with `in_slot` set to 0 here"):
+    env = gym.make(env_id, free=False, obs_keys=['x', 'goal'], in_slot=None)
+
+env.seed(100)
+with doc.row() as row:
+    for i in range(5):
+        obs = env.reset()
+        img = env.render("rgb", width=100, height=100)
+        row.image(img)
+    print("hey")
+
+with doc @ """Now launch:""":
     # methods = ['ppo', 'sac', 'td3', 'ddpg']
     methods = ['sac', 'td3', 'ddpg']
-    # methods = ['sac']
-    env_ids = [
-        "sawyer:Reach-v0",
-        "sawyer:Peg3D-v0",
-        "sawyer:Push-v0",
-        "sawyer:PushMove-v0",
-        "sawyer:PickPlace-v0",
-    ]
-    test_kwargses = [
-        None,
-        dict(init_mode="hover"),
-        dict(init_mode="hover"),
-        dict(init_mode="hover"),
-        dict(init_mode="hover"),
-    ]
+    env_ids = ["ge_world:Peg2D-reach-v0", "ge_world:Peg2D-v0"]
+    test_env_kwargses = [None, dict(in_slot=None)]
     short_names = [d.split(':')[-1] for d in env_ids]
     prefix = None
 
@@ -41,6 +50,7 @@ if __name__ == '__main__' and prefix:
     doc @ f"""
     Experiment: [[{prefix.split("/")[-2]}]](http://localhost:3001{prefix})
     """
+
     import matplotlib.pyplot as plt
     from ml_logger import ML_Logger
     from pg_experiments import RUN
@@ -96,20 +106,19 @@ with doc:
         from firedup.algos.ddpg.ddpg import ddpg
         from pg_experiments import instr
 
-        is_debug = "pydevd" in sys.modules
-        jaynes.config("local" if is_debug else "cpu-mars", launch=dict(timeout=None if is_debug else 0.01))
-        # jaynes.config("cpu-mars", launch=dict(timeout=None))
+        jaynes.config("local" if "pydevd" in sys.modules else "cpu-mars")
 
         for method in methods:
-            for env_id, name, t_kwargs in zip(env_ids, short_names, test_kwargses):
+            for env_id, name, tek in zip(env_ids, short_names, test_env_kwargses):
                 for seed in [100, 200, 300, 400, 500]:
                     video_interval = 1 if seed == 100 else None
                     charts = [dict(type="video", glob="**/*.mp4")] if seed == 100 else []
                     thunk = instr(eval(method),
                                   env_id=env_id,
                                   seed=seed,
-                                  # test_env_kwargs=t_kwargs,
-                                  wrappers=(FlatGoalEnv,),
+                                  env_kwargs=dict(),
+                                  test_env_kwargs=tek,
+                                  wrappers=(FlatEnv,),
                                   ac_kwargs=dict(hidden_sizes=[128, ] * 3),
                                   gamma=0.99,
                                   ep_limit=50,

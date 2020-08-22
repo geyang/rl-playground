@@ -8,8 +8,8 @@ import metaworld
 import random
 from env_wrappers.metaworld import RenderEnv
 
-mt10 = metaworld.MT50()  # Construct the benchmark, sampling tasks
-for name, __Env__ in mt10.train_classes.items():
+mt50 = metaworld.MT50()  # Construct the benchmark, sampling tasks
+for name, __Env__ in mt50.train_classes.items():
     print(name)
     env = __Env__()
     task = random.choice([task for task in mt10.train_tasks if task.env_name == name])

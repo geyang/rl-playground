@@ -57,6 +57,7 @@ _CONFIG = dict(charts=['EpRet/mean', 'VVals/mean', 'LogPi/mean'])
 def td3(env_id,
         seed=0,
         env_kwargs=dict(),
+        test_env_kwargs=None,
         wrappers=tuple(),
         actor_critic=core.ActorCritic, ac_kwargs=dict(),
         steps_per_epoch=5000,
@@ -154,8 +155,9 @@ def td3(env_id,
     np.random.seed(seed)
     torch.manual_seed(seed)
 
+    test_env_kwargs = test_env_kwargs or env_kwargs
     env = env_fn(env_id, *wrappers, **env_kwargs, seed=seed)
-    test_env = env_fn(env_id, *wrappers, **env_kwargs, seed=seed + 100)
+    test_env = env_fn(env_id, *wrappers, **test_env_kwargs, seed=seed + 100)
 
     obs_dim = env.observation_space.shape[0]
     act_dim = env.action_space.shape[0]

@@ -109,7 +109,9 @@ with early stopping based on approximate KL
 """
 
 
-def ppo(env_id, seed=0, wrappers=tuple(),
+def ppo(env_id, seed=0,
+        env_kwargs=dict(),
+        wrappers=tuple(),
         actor_critic=core.ActorCritic, ac_kwargs=dict(), steps_per_epoch=4000,
         epochs=50, gamma=0.99, clip_ratio=0.2, pi_lr=3e-4, vf_lr=1e-3, train_pi_iters=80, train_v_iters=80,
         lam=0.97, ep_limit=1000, target_kl=0.01,
@@ -200,7 +202,7 @@ def ppo(env_id, seed=0, wrappers=tuple(),
     torch.manual_seed(seed)
     np.random.seed(seed)
 
-    env = env_fn(env_id, *wrappers, seed=seed)
+    env = env_fn(env_id, *wrappers, seed=seed, **env_kwargs)
 
     obs_dim = env.observation_space.shape
     act_dim = env.action_space.shape

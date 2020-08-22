@@ -1,7 +1,7 @@
 from cmx import doc, CommonMark
 
 # doc = CommonMark(filename="README.md", overwrite=True)
-from firedup.wrappers.flat_goal import FlatGoalEnv
+from env_wrappers.flat_env import FlatGoalEnv
 
 doc @ """
 # Baselines on All Fetch Tasks
