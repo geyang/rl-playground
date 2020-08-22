@@ -8,7 +8,6 @@ data
 datasets
 *.jaynes.yml
 *.egg-info
-**/videos
 **/data
 **/training
 **/parameters.pkl
