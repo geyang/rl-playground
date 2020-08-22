@@ -64,3 +64,14 @@ for task_name, Env in test_env_classes.items():
     env.close()
 ```
 
+<div style="flex-wrap:wrap; display:flex; flex-direction:row; item-align:center;"><div><div style="text-align: center">box-close-v1</div><img style="margin:0.5em;" src="videos/box-close-v1.gif" width="240" height="160"/></div><div><div style="text-align: center">bin-picking-v1</div><img style="margin:0.5em;" src="videos/bin-picking-v1.gif" width="240" height="160"/></div></div>
+Now show the reward distribution
+
+```python
+import matplotlib.pyplot as plt
+
+plt.hist(rewards, bins=10, histtype='stepfilled')
+doc.savefig(f"figures/single_env/reward_dist.png", dpi=120, zoom="30%")
+```
+
+<img style="align-self:center; zoom:30%;" src="figures/single_env/reward_dist.png" width="None" height="None"/>
