@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
-import gym
 import scipy.signal
 import firedup.algos.ppo.core as core
 from firedup import mpi
@@ -111,6 +110,7 @@ with early stopping based on approximate KL
 
 def ppo(env_id, seed=0,
         env_kwargs=dict(),
+        env_fn=env_fn,
         wrappers=tuple(),
         actor_critic=core.ActorCritic, ac_kwargs=dict(), steps_per_epoch=4000,
         epochs=50, gamma=0.99, clip_ratio=0.2, pi_lr=3e-4, vf_lr=1e-3, train_pi_iters=80, train_v_iters=80,

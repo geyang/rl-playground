@@ -1,8 +1,6 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
-import gym
-import time
 from firedup.algos.td3 import core
 from firedup.wrappers import env_fn
 
@@ -59,6 +57,7 @@ def td3(env_id,
         env_kwargs=dict(),
         test_env_kwargs=None,
         wrappers=tuple(),
+        env_fn=env_fn,
         actor_critic=core.ActorCritic, ac_kwargs=dict(),
         steps_per_epoch=5000,
         epochs=100,

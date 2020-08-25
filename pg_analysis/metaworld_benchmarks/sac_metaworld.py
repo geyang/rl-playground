@@ -3,6 +3,7 @@ from cmx import doc
 
 from env_wrappers.flat_env import FlatEnv
 from env_wrappers.metaworld import ALL_ENVS
+from firedup.wrappers import singleton_env_fn
 
 doc @ """
 # Metaworld Baselines
@@ -18,13 +19,15 @@ with doc:
     methods = ['sac']
     env_prefix = "env_wrappers.metaworld"
     env_ids = [
-        f"{env_prefix}:Reach-v1",
-        f"{env_prefix}:Push-v1",
+        # f"{env_prefix}:Reach-v1",
+        # f"{env_prefix}:Push-v1",
         f"{env_prefix}:Pick-place-v1",
         f"{env_prefix}:Box-close-v1",
         f"{env_prefix}:Bin-picking-v1",
     ]
     short_names = [d.split(':')[-1] for d in env_ids]
+    epochses = [40, 100, 2500, 2500, 2500]
+    ep_limits = [150, 150, 150, 200, 150]
     prefix = None
 
 if __name__ == '__main__' and prefix:
@@ -89,25 +92,26 @@ with doc:
         jaynes.config("local" if "pydevd" in sys.modules else "cpu-mars")
 
         for method in methods:
-            for env_id, name in zip(env_ids, short_names):
+            for env_id, name, epochs, ep_limit in zip(env_ids, short_names, epochses, ep_limits):
                 for seed in [100, 200, 300]:
                     # video_interval = 1 if seed == 100 else None
                     video_interval = 5
-                    charts = [dict(type="video", glob="**/*.mp4")] if seed == 100 else []
                     thunk = instr(eval(method),
                                   env_id=env_id,
                                   seed=seed,
+                                  # env_fn=singleton_env_fn,
                                   ac_kwargs=dict(hidden_sizes=[400, ] * 3),
                                   gamma=0.99,
                                   # standard for metaworld
-                                  ep_limit=150,
-                                  batch_size=1280,
+                                  ep_limit=ep_limit,
+                                  batch_size=128,
+                                  lr=3e-4,
                                   start_steps=1500,
                                   steps_per_epoch=4000,
-                                  epochs=500 if method == "ppo" else 250,
+                                  epochs=epochs,
                                   video_interval=video_interval,
-                                  _config=dict(charts=["success/mean", "reachDist/mean", "goalDist/mean", *charts]),
-                                  _job_postfix=f"{name}/{method}")
+                                  _config=dict(charts=["success/mean", "reachDist/mean", "goalDist/mean",
+                                                       dict(type="video", glob="**/*.mp4")]), _job_postfix=f"{name}/{method}")
 
                     jaynes.run(thunk)
 

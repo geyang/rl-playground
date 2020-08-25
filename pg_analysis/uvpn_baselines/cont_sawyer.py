@@ -111,13 +111,15 @@ with doc:
                                   test_env_kwargs=t_kwargs,
                                   wrappers=(FlatGoalEnv,),
                                   ac_kwargs=dict(hidden_sizes=[20, ] * 4),
-                                  gamma=0.985,
-                                  ep_limit=50,
+                                  gamma=0.99,
+                                  ep_limit=100,
                                   steps_per_epoch=4000,
+                                  batch_size=256,
+                                  start_steps=1500,
                                   epochs=500,
                                   video_interval=video_interval,
-                                  _config=dict(charts=["success/mean", "dist/mean",
-                                                       dict(type="video", glob="**/*.mp4")]),
+                                  _config={'charts': ["success/mean", "dist/mean",
+                                                      {'type': "video", 'glob': "**/*.mp4"}]},
                                   _job_postfix=f"{name}/{method}")
 
                     jaynes.run(thunk)

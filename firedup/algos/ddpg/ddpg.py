@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
-import gym
 from firedup.algos.ddpg import core
 from firedup.wrappers import env_fn
 
@@ -53,6 +52,7 @@ def ddpg(
         seed=0,
         env_kwargs=dict(),
         test_env_kwargs=None,
+        env_fn=env_fn,
         wrappers=tuple(),
         actor_critic=core.ActorCritic,
         ac_kwargs=dict(),

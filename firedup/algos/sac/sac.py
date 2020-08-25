@@ -1,8 +1,6 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
-import gym
-import time
 from firedup.algos.sac import core
 from firedup.wrappers import env_fn
 
@@ -57,6 +55,7 @@ def sac(
         env_kwargs=dict(),
         wrappers=tuple(),
         test_env_kwargs=None,
+        env_fn=env_fn,
         ep_limit=1000,
         actor_critic=core.ActorCritic,
         ac_kwargs=dict(),
@@ -203,6 +202,7 @@ def sac(
 
     # alpha optimizer
     if optimize_alpha:
+        # todo: factorized action space is sum ( ...prod (...) )
         target_entropy = -np.prod(env.action_space.shape).item()
         log_alpha = torch.zeros(1, requires_grad=True)
         alpha_optimizer = torch.optim.Adam([log_alpha], lr=lr)
