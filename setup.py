@@ -27,6 +27,7 @@ setup(
         "torch>=1.5.1",
         "tqdm",
         "wandb",
+        "mujoco_maze",
     ],
     description="A collection of clean implementation of reinforcement learning algorithms",
     author="Ge Yang<ge.ike.yang@gmail.com>",
