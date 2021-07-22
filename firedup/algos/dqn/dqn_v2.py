@@ -5,7 +5,6 @@ import torch.nn.functional as F
 from collections import defaultdict
 from firedup.algos.dqn import core
 from firedup.wrappers import env_fn
-from toy_mdp.rand_mdp import RandMDP
 
 """
 An Enhanced Version of dqn, with better better coding style.
@@ -50,12 +49,13 @@ Deep Q-Network
 """
 
 
-def dqn(env_id, q_network=core.QMlp, ac_kwargs={}, seed=0, steps_per_epoch=5000, epochs=100,
+def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, steps_per_epoch=5000, epochs=100,
         replay_size=int(1e6), gamma=0.99, min_replay_history=20000, epsilon_decay_period=250000, epsilon_train=0.01,
         epsilon_eval=0.001, lr=1e-3, ep_limit=1000, update_interval=4, target_update_interval=8000, batch_size=100,
         save_freq=1, save_dir=None):
     __d = locals()
-    from ml_logger import logger
+    from ml_logger import ML_Logger
+    logger = ML_Logger(prefix=f"rl_transfer/rl_playground/dqn/{exp_name}")
     logger.log_params(kwargs=__d)
     logger.upload_file(__file__)
 
@@ -71,8 +71,6 @@ def dqn(env_id, q_network=core.QMlp, ac_kwargs={}, seed=0, steps_per_epoch=5000,
                       yKey: LossQ/mean
                     """, ".charts.yml", overwrite=True)
 
-    # env, test_env = env_fn(env_id, seed=seed), env_fn(env_id, seed=seed + 100)
-    env, test_env = RandMDP(option='fixed'), RandMDP(option='fixed')
     obs_dim = env.observation_space.shape[0]
     act_dim = 1  # env.action_space.shape
 
@@ -200,11 +198,3 @@ def dqn(env_id, q_network=core.QMlp, ac_kwargs={}, seed=0, steps_per_epoch=5000,
                                                   "TestEpLen": "mean", "QVals": "min_max", "LossQ": "mean"})
         state_dict = {'q_net':main.state_dict()}
         torch.save(state_dict, f'{save_dir}/state.pt')
-
-if __name__ == '__main__':
-    dqn("semi-rand-mdp",
-        ac_kwargs=dict(hidden_sizes=[64, ] * 2),
-        gamma=0.99,
-        seed=0,
-        steps_per_epoch=4000,
-        epochs=50)
