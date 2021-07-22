@@ -53,7 +53,7 @@ Deep Q-Network
 def dqn(env_id, q_network=core.QMlp, ac_kwargs={}, seed=0, steps_per_epoch=5000, epochs=100,
         replay_size=int(1e6), gamma=0.99, min_replay_history=20000, epsilon_decay_period=250000, epsilon_train=0.01,
         epsilon_eval=0.001, lr=1e-3, ep_limit=1000, update_interval=4, target_update_interval=8000, batch_size=100,
-        save_freq=1, ):
+        save_freq=1, save_dir=None):
     __d = locals()
     from ml_logger import logger
     logger.log_params(kwargs=__d)
@@ -198,7 +198,8 @@ def dqn(env_id, q_network=core.QMlp, ac_kwargs={}, seed=0, steps_per_epoch=5000,
             logger.log_metrics_summary(key_values={"epoch": epoch, "envSteps": t, "time": logger.since('start')},
                                        key_stats={"EpRet": "min_max", "TestEpRet": "min_max", "EpLen": "mean",
                                                   "TestEpLen": "mean", "QVals": "min_max", "LossQ": "mean"})
-
+        state_dict = {'q_net':main.state_dict()}
+        torch.save(state_dict, f'{save_dir}/state.pt')
 
 if __name__ == '__main__':
     dqn("semi-rand-mdp",
