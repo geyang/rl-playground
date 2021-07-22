@@ -1,4 +1,5 @@
 import numpy as np
+import math
 import torch
 import torch.nn as nn
 from gym.spaces import Box, Discrete
@@ -13,6 +14,12 @@ def linearly_decaying_epsilon(decay_period, step, warmup_steps, epsilon):
     bonus = (1.0 - epsilon) * steps_left / decay_period
     bonus = np.clip(bonus, 0.0, 1.0 - epsilon)
     return epsilon + bonus
+
+def exponential_decaying_epsilon(epsilon_start, epsilon_end, epsilon_decay, t, min_replay_history):
+    if t < min_replay_history:
+        return epsilon_start
+    t = t - min_replay_history
+    return epsilon_end + (epsilon_start - epsilon_end) * math.exp(-1. * t / epsilon_decay)
 
 
 class MLP(nn.Module):

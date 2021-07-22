@@ -50,9 +50,9 @@ Deep Q-Network
 
 
 def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, steps_per_epoch=5000, epochs=100,
-        replay_size=int(1e6), gamma=0.99, min_replay_history=20000, epsilon_decay_period=250000, epsilon_train=0.01,
-        epsilon_eval=0.001, lr=1e-3, ep_limit=1000, update_interval=4, target_update_interval=8000, batch_size=100,
-        save_freq=1, save_dir=None):
+        replay_size=int(1e6), gamma=0.99, min_replay_history=20000, epsilon_start=0.9,
+        epsilon_end=0.01, epsilon_decay=200, epsilon_eval=0.001, lr=1e-3, ep_limit=1000, update_interval=4, target_update_interval=8000,
+        batch_size=100, save_freq=1, save_dir=None):
     __d = locals()
     from ml_logger import ML_Logger
     logger = ML_Logger(prefix=f"rl_transfer/rl_playground/dqn/{exp_name}")
@@ -64,9 +64,10 @@ def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, step
 
     logger.log_text("""
                     charts:
-                    - xKey: __timestamp
-                      xFormat: time
+                    - xKey: envSteps
                       yKey: EpRet/mean
+                    - xKey: epoch
+                      yKey: TestEpRet/mean                      
                     - xKey: epoch
                       yKey: LossQ/mean
                     """, ".charts.yml", overwrite=True)
@@ -135,8 +136,8 @@ def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, step
         main.eval()
 
         # the epsilon value used for exploration during training
-        epsilon = core.linearly_decaying_epsilon(
-            epsilon_decay_period, t, min_replay_history, epsilon_train
+        epsilon = core.exponential_decaying_epsilon(
+            epsilon_start, epsilon_end, epsilon_decay, t, min_replay_history,
         )
         a = get_action(obs, epsilon)
         traj['a'].append(a)
