@@ -1,1 +1,1 @@
-from rand_mdp import RandMDP
+from toy_mdp.rand_mdp import RandMDP

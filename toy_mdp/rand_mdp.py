@@ -8,10 +8,10 @@ class RandMDP(gym.Env):
         super(RandMDP, self).__init__()
         assert option in ('rand', 'semi_rand', 'fixed')
         self.action_space = spaces.Discrete(2)
-        self.observation_space = spaces.Box(low=0, high=1, shape=(), dtype=np.float32)
+        self.observation_space = spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
         self.time = 0
         self.rng = np.random.RandomState(seed)
-        self.obs = self.rng.rand()
+        self.obs = np.array([self.rng.random()])
         if option == 'rand':
             self.kinks = self.rng.rand(2, 2)
             self.kinks.sort(axis=1)
@@ -43,7 +43,8 @@ class RandMDP(gym.Env):
         return self.obs, self.obs, (self.time >= 10), {}
 
     def reset(self):
-        self.obs = self.rng.random.rand()
+        self.time=0
+        self.obs = np.array([self.rng.random()])
         return self.obs
 
     def get_discrete_mdp(self, num_states=100):

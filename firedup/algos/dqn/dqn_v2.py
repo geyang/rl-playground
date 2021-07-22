@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from collections import defaultdict
 from firedup.algos.dqn import core
 from firedup.wrappers import env_fn
+from toy_mdp.rand_mdp import RandMDP
 
 """
 An Enhanced Version of dqn, with better better coding style.
@@ -70,7 +71,8 @@ def dqn(env_id, q_network=core.QMlp, ac_kwargs={}, seed=0, steps_per_epoch=5000,
                       yKey: LossQ/mean
                     """, ".charts.yml", overwrite=True)
 
-    env, test_env = env_fn(env_id, seed=seed), env_fn(env_id, seed=seed + 100)
+    # env, test_env = env_fn(env_id, seed=seed), env_fn(env_id, seed=seed + 100)
+    env, test_env = RandMDP(option='fixed'), RandMDP(option='fixed')
     obs_dim = env.observation_space.shape[0]
     act_dim = 1  # env.action_space.shape
 
@@ -199,7 +201,7 @@ def dqn(env_id, q_network=core.QMlp, ac_kwargs={}, seed=0, steps_per_epoch=5000,
 
 
 if __name__ == '__main__':
-    dqn("LunarLander-v2",
+    dqn("semi-rand-mdp",
         ac_kwargs=dict(hidden_sizes=[64, ] * 2),
         gamma=0.99,
         seed=0,
