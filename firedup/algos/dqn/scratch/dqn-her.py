@@ -1,13 +1,10 @@
 from collections import deque
 
 import numpy as np
-import gym
 import torch
 import torch.nn.functional as F
 from firedup.algos.dqn import core
 from firedup.wrappers import env_fn
-from itertools import chain
-from more_itertools import ichunked
 
 
 class HerReplayBuffer:
@@ -116,8 +113,8 @@ def dqn(env_id,
             logger.store(TestEpRet=ep_ret, TestEpLen=ep_len)
 
     buffer = HerReplayBuffer()
-    from sampling.subproc_runner import SubprocRunner
-    from sampling.path_gen import path_gen
+    from env_wrappers.sampling import SubprocRunner
+    from env_wrappers.sampling import path_gen
     from functools import partial
 
     env_step_limit = steps_per_epoch * epochs

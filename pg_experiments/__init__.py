@@ -15,7 +15,7 @@ class RUN(ParamsProto):
     """The main point of this config object is to provide a way for config functions
     to directly specify the job prefix."""
 
-    server = "http://54.71.92.65:8081"
+    server = "http://54.71.92.65:8080"
 
     run_prefix = f"{rc['username']}/{rc['project']}/{logger.now('%Y/%m-%d')}"
 

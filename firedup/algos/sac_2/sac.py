@@ -6,7 +6,7 @@ import time
 import torch
 from torch.optim import Adam
 from ml_logger import logger
-from firedup.algos.sac import core
+from firedup.algos.sac_2 import core
 from firedup.wrappers import env_fn
 
 
@@ -42,11 +42,17 @@ class ReplayBuffer:
         return {k: torch.as_tensor(v, dtype=torch.float32) for k, v in batch.items()}
 
 
-def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
+_CONFIG = dict(charts=["EpRet/mean", "test/EpRet/mean", "success/mean", "test/success/mean"])
+
+
+def sac(env_id, seed=0, env_kwargs={}, wrappers=tuple(),
+        test_env_kwargs=None, env_fn=env_fn,
+        actor_critic=core.MLPActorCritic, ac_kwargs=dict(),
         steps_per_epoch=4000, epochs=100, replay_size=int(1e6), gamma=0.99,
         polyak=0.995, lr=1e-3, alpha=0.2, batch_size=100, start_steps=10000,
-        update_after=1000, update_every=50, num_test_episodes=10, max_ep_len=1000,
-        save_freq=1):
+        update_after=1000, update_every=50, num_test_episodes=10, ep_limit=None,
+        save_freq=1, video_interval=None,
+        _config=_CONFIG):
     """
     Soft Actor-Critic (SAC)
 
@@ -135,7 +141,7 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         num_test_episodes (int): Number of episodes to test the deterministic
             policy at the end of each epoch.
 
-        max_ep_len (int): Maximum length of trajectory / episode / rollout.
+        ep_limit (int): Maximum length of trajectory / episode / rollout.
 
         logger_kwargs (dict): Keyword args for EpochLogger.
 
@@ -146,10 +152,17 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     logger.log_params(locals=locals())
     logger.upload_file(__file__)
 
+    logger.save_yaml(_config, ".charts.yml")
+
     torch.manual_seed(seed)
     np.random.seed(seed)
 
-    env, test_env = env_fn(), env_fn()
+    test_env_kwargs = test_env_kwargs or env_kwargs
+    env = env_fn(env_id, *wrappers, **env_kwargs, seed=seed)
+    test_env = env_fn(env_id, *wrappers, **test_env_kwargs, seed=seed + 100)
+
+    ep_limit = ep_limit or env.spec.max_episode_length
+
     obs_dim = env.observation_space.shape
     act_dim = env.action_space.shape[0]
 
@@ -224,7 +237,7 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     q_optimizer = Adam(q_params, lr=lr)
 
     # Set up model saving
-    logger.setup_pytorch_saver(ac)
+    # logger.setup_pytorch_saver(ac)
 
     def update(data):
         # First run one gradient descent step for Q1 and Q2
@@ -263,8 +276,7 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
                 p_targ.data.add_((1 - polyak) * p.data)
 
     def get_action(o, deterministic=False):
-        return ac.act(torch.as_tensor(o, dtype=torch.float32),
-                      deterministic)
+        return ac.act(torch.as_tensor(o, dtype=torch.float32), deterministic)
 
     def test_agent(n=10, log_video=False, epoch=None):
         frames = []
@@ -283,7 +295,7 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
 
     # Prepare for interaction with environment
     total_steps = steps_per_epoch * epochs
-    logger.start("start")
+    logger.start("start", "epoch")
     o, ep_ret, ep_len = env.reset(), 0, 0
 
     # Main loop: collect experience in env and update/log each epoch
@@ -298,14 +310,14 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
             a = env.action_space.sample()
 
         # Step the env
-        o2, r, d, _ = env.step(a)
+        o2, r, d, info = env.step(a)
         ep_ret += r
         ep_len += 1
 
         # Ignore the "done" signal if it comes from hitting the time
         # horizon (that is, when it's an artificial terminal signal
         # that isn't based on the agent's state)
-        d = False if ep_len == max_ep_len else d
+        d = False if ep_len == ep_limit else d
 
         # Store experience to replay buffer
         replay_buffer.store(o, a, r, o2, d)
@@ -315,8 +327,8 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         o = o2
 
         # End of trajectory handling
-        if d or (ep_len == max_ep_len):
-            logger.store(EpRet=ep_ret, EpLen=ep_len)
+        if d or (ep_len == ep_limit):
+            logger.store(EpRet=ep_ret, EpLen=ep_len, dtEpoch=logger.split('epoch'), **info)
             o, ep_ret, ep_len = env.reset(), 0, 0
 
         # Update handling
@@ -330,8 +342,8 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
             epoch = (t + 1) // steps_per_epoch
 
             # Save model
-            if (epoch % save_freq == 0) or (epoch == epochs):
-                logger.save_state({'env': env}, None)
+            # if (epoch % save_freq == 0) or (epoch == epochs):
+            #     logger.save_state({'env': env}, None)
 
             # Test the performance of the deterministic version of the agent.
             test_agent(log_video=video_interval and epoch % video_interval == 0, epoch=epoch)
@@ -339,21 +351,23 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
             # Log info about epoch
             stats = {
                 "EpRet": "min_max",
-                "TestEpRet": "min_max",
+                "test/EpRet": "min_max",
                 "EpLen": "mean",
-                "TestEpLen": "mean",
-                "Q1Vals": "min_max",
-                "Q2Vals": "min_max",
-                "VVals": "min_max",
+                "test/EpLen": "mean",
                 "LogPi": "min_max",
+                "Q1Vals": "mean",
+                "Q2Vals": "mean",
                 "LossPi": "mean",
-                "LossQ1": "mean",
-                "LossQ2": "mean",
-                "LossV": "mean",
+                "LossQ": "mean",
             }
             # if optimize_alpha:
             #     stats["LossAlpha"] = "mean"
             #     stats["alpha"] = "mean"
+
+            # Log info about epoch
+            logger.log_metrics_summary(
+                key_values={"epoch": epoch, "envSteps": t, "time": logger.since('start')},
+                key_stats=stats)
 
 
 if __name__ == '__main__':
@@ -369,13 +383,13 @@ if __name__ == '__main__':
     parser.add_argument('--exp_name', type=str, default='sac')
     args = parser.parse_args()
 
-    from spinup.utils.run_utils import setup_logger_kwargs
+    # from spinup.utils.run_utils import setup_logger_kwargs
 
-    logger_kwargs = setup_logger_kwargs(args.exp_name, args.seed)
+    # logger_kwargs = setup_logger_kwargs(args.exp_name, args.seed)
 
     torch.set_num_threads(torch.get_num_threads())
 
-    sac(lambda: gym.make(args.env), actor_critic=core.MLPActorCritic,
+    sac(args.env, actor_critic=core.MLPActorCritic,
         ac_kwargs=dict(hidden_sizes=[args.hid] * args.l),
         gamma=args.gamma, seed=args.seed, epochs=args.epochs,
-        logger_kwargs=logger_kwargs)
+        )

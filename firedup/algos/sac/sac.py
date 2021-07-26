@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn.functional as F
+from ml_logger import logger
 from firedup.algos.sac import core
 from firedup.wrappers import env_fn
 
@@ -153,7 +154,7 @@ def sac(
         video_interval (int): saves the last epoch if -1, do not save if None,
             otherwise by the integer interval
     """
-    from ml_logger import logger
+    logger.log_params(locals=locals())
     logger.upload_file(__file__)
 
     logger.save_yaml(_config, ".charts.yml")
@@ -168,11 +169,8 @@ def sac(
     obs_dim = env.observation_space.shape[0]
     act_dim = env.action_space.shape[0]
 
-    # Share information about action space with policy architecture
-    ac_kwargs["action_space"] = env.action_space
-
     # Main computation graph
-    main = actor_critic(in_features=obs_dim, **ac_kwargs)
+    main = actor_critic(in_features=obs_dim, action_space=env.action_space, **ac_kwargs)
 
     # Target value network
     target = actor_critic(in_features=obs_dim, **ac_kwargs)
@@ -193,11 +191,7 @@ def sac(
     pi_optimizer = torch.optim.Adam(main.policy.parameters(), lr=lr)
 
     # Value train op
-    value_params = (
-            list(main.vf_mlp.parameters())
-            + list(main.q1.parameters())
-            + list(main.q2.parameters())
-    )
+    value_params = (*main.vf_mlp.parameters(), *main.q1.parameters(), *main.q2.parameters(),)
     value_optimizer = torch.optim.Adam(value_params, lr=lr)
 
     # alpha optimizer
@@ -274,8 +268,7 @@ def sac(
                                                 torch.Tensor(batch["obs2"]),
                                                 torch.Tensor(batch["acts"]),
                                                 torch.Tensor(batch["rews"]),
-                                                torch.Tensor(batch["done"]),
-                                                )
+                                                torch.Tensor(batch["done"]),)
                 _, _, logp_pi, q1, q2, q1_pi, q2_pi, v = main(obs1, acts)
                 v_targ = target.vf_mlp(obs2)
 
@@ -315,12 +308,8 @@ def sac(
                 value_optimizer.step()
 
                 # Polyak averaging for target parameters
-                for p_main, p_target in zip(
-                        main.vf_mlp.parameters(), target.vf_mlp.parameters()
-                ):
-                    p_target.data.copy_(
-                        polyak * p_target.data + (1 - polyak) * p_main.data
-                    )
+                for p_main, p_target in zip(main.vf_mlp.parameters(), target.vf_mlp.parameters()):
+                    p_target.data.copy_(polyak * p_target.data + (1 - polyak) * p_main.data)
 
                 logger.store(
                     LossPi=pi_loss.item(),
@@ -331,10 +320,9 @@ def sac(
                     Q2Vals=q2.detach().numpy(),
                     VVals=v.detach().numpy(),
                     LogPi=logp_pi.detach().numpy(),
-                    dtEpoch=logger.split('epoch')
                 )
 
-            logger.store(EpRet=ep_ret, EpLen=ep_len, **info)
+            logger.store(EpRet=ep_ret, EpLen=ep_len, dtEpoch=logger.split('epoch'), **info)
             o, r, d, ep_ret, ep_len = env.reset(), 0, False, 0, 0
 
         # End of epoch wrap-up
@@ -364,7 +352,7 @@ def sac(
             }
             if optimize_alpha:
                 stats["LossAlpha"] = "mean"
-                stats["Alpha"] = "mean"
+                stats["alpha"] = "mean"
 
             # Log info about epoch
             logger.log_metrics_summary(
