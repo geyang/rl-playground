@@ -25,15 +25,13 @@ def perform_deep_vi(states, rewards, dyn_mats, lr=1e-4, gamma=0.9):
     import torch.nn as nn
     # Ge: need to initialize the Q function at zero
     Q = nn.Sequential(
-        nn.Linear(1, 200),
+        nn.Linear(1, 2000),
         nn.ReLU(),
-        nn.Linear(200, 200),
+        nn.Linear(2000, 2000),
         nn.ReLU(),
-        nn.Linear(200, 200),
+        nn.Linear(2000, 2000),
         nn.ReLU(),
-        nn.Linear(200, 200),
-        nn.ReLU(),
-        nn.Linear(200, 2),
+        nn.Linear(2000, 2),
     )
     Q_target = deepcopy(Q)
 
@@ -47,7 +45,7 @@ def perform_deep_vi(states, rewards, dyn_mats, lr=1e-4, gamma=0.9):
     losses = []
 
     for epoch in trange(400):
-        if epoch % 10 == 0:
+        if epoch % 1 == 0:
             Q_target.load_state_dict(Q.state_dict())
 
         q_max, actions = Q_target(states).max(dim=-1)
@@ -73,10 +71,10 @@ if __name__ == "__main__":
         from rand_mdp import RandMDP
         from matplotlib import pyplot as plt
 
-        num_states = 100
+        num_states = 20
         mdp = RandMDP(seed=0, option='fixed')
         states, rewards, dyn_mats = mdp.get_discrete_mdp(num_states=num_states)
-        q_values, loss = perform_vi(states, rewards, dyn_mats)
+        q_values, losses = perform_vi(states, rewards, dyn_mats)
         plt.plot(states, q_values[0], label="action 1")
         plt.plot(states, q_values[1], label="action 2")
         plt.title("Toy MDP")
@@ -86,8 +84,8 @@ if __name__ == "__main__":
         r.savefig(f'figures/toy_mdp.png?ts={doc.now("%f")}', dpi=300, zoom=0.3)
         plt.close()
 
-        plt.plot(loss)
-        plt.hlines(0, 0, len(states), linestyle='--', color='gray')
+        plt.plot(losses)
+        plt.hlines(0, 0, len(losses), linestyle='--', color='gray')
         plt.title("Residual")
         plt.xlabel('Optimization Steps')
         r.savefig(f'figures/residual.png?ts={doc.now("%f")}', dpi=300, zoom=0.3)
@@ -103,7 +101,6 @@ if __name__ == "__main__":
         from rand_mdp import RandMDP
         from matplotlib import pyplot as plt
 
-        num_states = 100
         mdp = RandMDP(seed=0, option='fixed')
         states, rewards, dyn_mats = mdp.get_discrete_mdp(num_states=num_states)
         q_values, losses = perform_deep_vi(states, rewards, dyn_mats)
