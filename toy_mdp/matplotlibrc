@@ -14,7 +14,7 @@ axes.labelsize      : large
 
 legend.frameon       : False
 legend.scatterpoints : 3
-legend.fontsize      : normal
+legend.fontsize      : small
 
 #axes.color_cycle    : b, g, r, c, m, y, k  # color cycle for plot lines
                                             # as list of string colorspecs:
