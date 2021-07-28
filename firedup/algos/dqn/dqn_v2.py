@@ -51,8 +51,8 @@ Deep Q-Network
 
 def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, steps_per_epoch=5000, epochs=100,
         replay_size=int(1e6), gamma=0.99, min_replay_history=20000, epsilon_start=0.9,
-        epsilon_end=0.01, epsilon_decay=200, epsilon_eval=0.001, lr=1e-3, ep_limit=1000, update_interval=4, target_update_interval=8000,
-        batch_size=100, save_freq=1, save_dir=None):
+        epsilon_end=0.01, epsilon_decay=200, epsilon_eval=0.001, lr=1e-3, momentum=0.9, ep_limit=1000, update_interval=4, target_update_interval=8000,
+        batch_size=100, save_freq=1, device='cuda', save_dir=None):
     __d = locals()
     from ml_logger import ML_Logger
     logger = ML_Logger(prefix=f"rl_transfer/rl_playground/dqn/{exp_name}")
@@ -61,6 +61,7 @@ def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, step
 
     torch.manual_seed(seed)
     np.random.seed(seed)
+    device = torch.device(device)
 
     logger.log_text("""
                     charts:
@@ -80,9 +81,11 @@ def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, step
 
     # Main computation graph
     main = q_network(in_features=obs_dim, **ac_kwargs)
+    main.to(device)
 
     # Target network
     target = q_network(in_features=obs_dim, **ac_kwargs)
+    target.to(device)
 
     # Experience buffer
     replay_buffer = ReplayBuffer(obs_dim=obs_dim, act_dim=act_dim, size=replay_size)
@@ -93,7 +96,7 @@ def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, step
 
     # Value train op
     value_params = main.q.parameters()
-    value_optimizer = torch.optim.Adam(value_params, lr=lr)
+    value_optimizer = torch.optim.SGD(value_params, lr=lr, momentum=momentum)
 
     # Initializing targets to match main variables
     target.load_state_dict(main.state_dict())
@@ -106,7 +109,7 @@ def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, step
         if np.random.random() <= epsilon:
             return env.action_space.sample()
         else:
-            q_values = main(torch.Tensor(o.reshape(1, -1)))
+            q_values = main(torch.Tensor(o.reshape(1, -1)).to(device))
             # return the action with highest Q-value for this observation
             return torch.argmax(q_values, dim=1).item()
 
@@ -118,18 +121,20 @@ def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, step
                 o, r, d, _ = test_env.step(get_action(o, epsilon_eval))
                 ep_ret += r
                 ep_len += 1
-            logger.store(TestEpRet=ep_ret, TestEpLen=ep_len)
+            logger.store(TestMeanRew=ep_ret/ep_len, TestEpRet=ep_ret, TestEpLen=ep_len)
 
     total_steps = steps_per_epoch * epochs
 
     logger.start('start', 'epoch')
     # this is an online version
     # Main loop: collect experience in env and update/log each epoch
+    num_episodes=0
     done, traj = True, None
     for t in range(total_steps + 1):
         if done or traj['a'].__len__() == ep_limit:
+            num_episodes += 1
             if traj:
-                logger.store(EpRet=sum(traj['r']), EpLen=len(traj['a']))
+                logger.store(MeanRew=np.mean(traj['r']), EpRet=sum(traj['r']), EpLen=len(traj['a']))
             obs = env.reset()
             traj = defaultdict(list, {"x": [obs]})
 
@@ -137,7 +142,7 @@ def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, step
 
         # the epsilon value used for exploration during training
         epsilon = core.exponential_decaying_epsilon(
-            epsilon_start, epsilon_end, epsilon_decay, t, min_replay_history,
+            epsilon_start, epsilon_end, epsilon_decay, num_episodes, min_replay_history,
         )
         a = get_action(obs, epsilon)
         traj['a'].append(a)
@@ -157,11 +162,11 @@ def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, step
             main.train()
             batch = replay_buffer.sample_batch(batch_size)
             (obs1, obs2, acts, rews, dones) = (
-                torch.Tensor(batch["obs1"]),
-                torch.Tensor(batch["obs2"]),
-                torch.Tensor(batch["acts"]),
-                torch.Tensor(batch["rews"]),
-                torch.Tensor(batch["done"]),
+                torch.Tensor(batch["obs1"]).to(device),
+                torch.Tensor(batch["obs2"]).to(device),
+                torch.Tensor(batch["acts"]).to(device),
+                torch.Tensor(batch["rews"]).to(device),
+                torch.Tensor(batch["done"]).to(device),
             )
             q_pi = main(obs1).gather(1, acts.long()).squeeze()
             q_pi_targ, _ = target(obs2).max(1)
@@ -176,7 +181,7 @@ def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, step
             value_optimizer.zero_grad()
             value_loss.backward()
             value_optimizer.step()
-            logger.store(LossQ=value_loss.item(), QVals=q_pi.data.numpy())
+            logger.store(LossQ=value_loss.item(), QVals=q_pi.data.cpu().numpy())
 
         # syncs weights from online to target network
         if t % target_update_interval == 0:
@@ -195,7 +200,7 @@ def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, step
 
             # Log info about epoch
             logger.log_metrics_summary(key_values={"epoch": epoch, "envSteps": t, "time": logger.since('start')},
-                                       key_stats={"EpRet": "min_max", "TestEpRet": "min_max", "EpLen": "mean",
+                                       key_stats={"EpRet": "min_max", "MeanRew":"min_max", "TestMeanRew":"min_max", "TestEpRet": "min_max", "EpLen": "mean",
                                                   "TestEpLen": "mean", "QVals": "min_max", "LossQ": "mean"})
         state_dict = {'q_net':main.state_dict()}
         torch.save(state_dict, f'{save_dir}/state.pt')

@@ -2,7 +2,7 @@ from firedup.algos.dqn.dqn_v2 import dqn
 from toy_mdp.rand_mdp import RandMDP
 import os
 
-seeds = list(range(5))
+seeds = list(range(1))
 
 for seed in seeds:
     save_dir = f'./toy_mdp_analysis/dqn_toy_mdp/{seed}'
@@ -11,8 +11,9 @@ for seed in seeds:
     dqn(env=env,
         test_env=test_env,
         exp_name=f'rand_mdp_fixed_dqn/{seed}',
-        ac_kwargs=dict(hidden_sizes=[128, ] * 2),
-        gamma=0.9,
+        ac_kwargs=dict(hidden_sizes=[16384,]),
+        gamma=0.999,
+        ep_limit=10,
         lr=1e-3,
         replay_size=int(1e4),
         batch_size=128,
@@ -21,5 +22,6 @@ for seed in seeds:
         update_interval=1,
         seed=seed,
         steps_per_epoch=1000,
-        epochs=300,
+        epochs=3000,
+        device='cuda',
         save_dir=save_dir)

@@ -7,7 +7,7 @@ from toy_mdp.rand_mdp import RandMDP
 seed = 0
 load_path = f'./toy_mdp_analysis/dqn_toy_mdp/{seed}/state.pt'
 env = RandMDP(option='fixed')
-ac_kwargs=dict(hidden_sizes=[64, ] * 2, action_space=env.action_space)
+ac_kwargs=dict(hidden_sizes=[16384,], action_space=env.action_space)
 obs_dim = env.observation_space.shape[0]
 q_net = core.QMlp(in_features=obs_dim, **ac_kwargs)
 state_dict = torch.load(load_path)
