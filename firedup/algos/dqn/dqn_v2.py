@@ -74,7 +74,7 @@ def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, step
                     """, ".charts.yml", overwrite=True)
 
     obs_dim = env.observation_space.shape[0]
-    act_dim = 1  # env.action_space.shape
+    act_dim = 1
 
     # Share information about action space with policy architecture
     ac_kwargs["action_space"] = env.action_space
@@ -180,6 +180,11 @@ def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, step
             # Q-learning update
             value_optimizer.zero_grad()
             value_loss.backward()
+
+            # Clamp gradients
+            for param in value_params:
+                param.grad.data.clamp_(-1, 1)
+
             value_optimizer.step()
             logger.store(LossQ=value_loss.item(), QVals=q_pi.data.cpu().numpy())
 
