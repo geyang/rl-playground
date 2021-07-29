@@ -5,12 +5,13 @@ from firedup.algos.dqn import core
 from toy_mdp.rand_mdp import RandMDP
 
 seed = 0
-load_path = f'./toy_mdp_analysis/dqn_toy_mdp/{seed}/state.pt'
+load_path = f'./toy_mdp_analysis/dqn_toy_mdp_fft/{seed}/state.pt'
 device='cpu'
 env = RandMDP(option='fixed')
-ac_kwargs=dict(hidden_sizes=[512,], action_space=env.action_space, fourier_features=True, fourier_size=8, fourier_sigma=1, device=device)
+ac_kwargs=dict(hidden_sizes=[400, 400, 400], action_space=env.action_space, fourier_features=True, fourier_size=200, fourier_sigma=10, device=device)
 obs_dim = env.observation_space.shape[0]
 q_net = core.QMlp(in_features=obs_dim, **ac_kwargs)
+
 state_dict = torch.load(load_path)
 q_net.load_state_dict(state_dict['q_net'])
 

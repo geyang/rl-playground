@@ -6,17 +6,31 @@ import argparse
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Config')
     parser.add_argument('--seeds', nargs='+', type=int, help='seeds', required=True)
+    parser.add_argument('--fft', action='store_true')
     args = parser.parse_args()
     device='cuda'
 
+    if args.fft:
+        fourier_features = True
+        fourier_size = 200
+        fourier_sigma = 10
+        exp_name = 'rand_mdp_fixed_dqn_fft'
+        save_dir = 'toy_mdp_analysis/dqn_toy_mdp_fft'
+    else:
+        fourier_features = False
+        fourier_size = -1
+        fourier_sigma = -1
+        exp_name = 'rand_mdp_fixed_dqn'
+        save_dir = 'toy_mdp_analysis/dqn_toy_mdp'
+
     for seed in args.seeds:
-        save_dir = f'./toy_mdp_analysis/dqn_toy_mdp/{seed}'
+        save_dir = f'./{save_dir}/{seed}'
         os.makedirs(save_dir, exist_ok=True)
         env, test_env = RandMDP(option='fixed'), RandMDP(option='fixed')
         dqn(env=env,
             test_env=test_env,
-            exp_name=f'rand_mdp_fixed_dqn/{seed}',
-            ac_kwargs=dict(hidden_sizes=[512,], fourier_features=True, fourier_size=8, fourier_sigma=1, device=device),
+            exp_name=f'{exp_name}/{seed}',
+            ac_kwargs=dict(hidden_sizes=[512,], fourier_features=fourier_features, fourier_size=fourier_size, fourier_sigma=fourier_sigma, device=device),
             gamma=0.9,
             ep_limit=10,
             lr=1e-3,

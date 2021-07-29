@@ -3,6 +3,7 @@ import math
 import torch
 import torch.nn as nn
 from gym.spaces import Box, Discrete
+from torch.nn.parameter import Parameter
 
 
 def count_vars(module):
@@ -46,9 +47,10 @@ class MLP(nn.Module):
         if self.fourier_features:
             device = torch.device(device)
             self.fourier_matrix = torch.normal(mean=0.0, std=fourier_sigma, size=(layers[0], fourier_size)).to(device)
+            self.fourier_matrix = Parameter(self.fourier_matrix, requires_grad=False)
             layers[0] = 2*fourier_size
         else:
-            self.fourier_matrix = None
+            self.register_parameter('fourier_matrix', None)
 
         for i, layer in enumerate(layers[1:]):
             self.layers.append(nn.Linear(layers[i], layer))

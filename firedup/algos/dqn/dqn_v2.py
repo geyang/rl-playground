@@ -207,5 +207,6 @@ def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, step
             logger.log_metrics_summary(key_values={"epoch": epoch, "envSteps": t, "time": logger.since('start')},
                                        key_stats={"EpRet": "min_max", "MeanRew":"min_max", "TestMeanRew":"min_max", "TestEpRet": "min_max", "EpLen": "mean",
                                                   "TestEpLen": "mean", "QVals": "min_max", "LossQ": "mean"})
+
         state_dict = {'q_net':main.state_dict()}
         torch.save(state_dict, f'{save_dir}/state.pt')
