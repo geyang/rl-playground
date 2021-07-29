@@ -31,7 +31,7 @@ class RandMDP(gym.Env):
         self.time += 1
         kink = self.kinks[action]
         value = self.values[action]
-        rew = self.obs
+        rew = np.copy(self.obs)
 
         if self.obs < kink[0]:
             self.obs = value[0] + (value[1]-value[0])/kink[0]*self.obs
