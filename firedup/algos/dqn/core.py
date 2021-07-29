@@ -30,6 +30,10 @@ class MLP(nn.Module):
             output_activation=None,
             output_scale=1,
             output_squeeze=False,
+            fourier_features=False,
+            fourier_size=-1,
+            fourier_sigma=-1,
+            device='cpu',
     ):
         super(MLP, self).__init__()
         self.layers = nn.ModuleList()
@@ -37,6 +41,14 @@ class MLP(nn.Module):
         self.output_activation = output_activation
         self.output_scale = output_scale
         self.output_squeeze = output_squeeze
+        self.fourier_features = fourier_features
+
+        if self.fourier_features:
+            device = torch.device(device)
+            self.fourier_matrix = torch.normal(mean=0.0, std=fourier_sigma, size=(layers[0], fourier_size)).to(device)
+            layers[0] = 2*fourier_size
+        else:
+            self.fourier_matrix = None
 
         for i, layer in enumerate(layers[1:]):
             self.layers.append(nn.Linear(layers[i], layer))
@@ -44,12 +56,20 @@ class MLP(nn.Module):
 
     def forward(self, inputs):
         x = inputs
+
+        if self.fourier_features:
+            x = torch.cat([torch.cos(2 * np.pi * torch.matmul(x, self.fourier_matrix)),
+                           torch.sin(2 * np.pi * torch.matmul(x, self.fourier_matrix))],
+                           dim=1)
+
         for layer in self.layers[:-1]:
             x = self.activation(layer(x))
+
         if self.output_activation is None:
             x = self.layers[-1](x) * self.output_scale
         else:
             x = self.output_activation(self.layers[-1](x)) * self.output_scale
+
         return x.squeeze() if self.output_squeeze else x
 
 
@@ -67,6 +87,10 @@ class QMlp(nn.Module):
             hidden_sizes=(400, 300),
             activation=torch.relu,
             output_activation=None,
+            fourier_features=False,
+            fourier_size=-1,
+            fourier_sigma=-1,
+            device='cpu',
     ):
         super(QMlp, self).__init__()
 
@@ -77,6 +101,10 @@ class QMlp(nn.Module):
             layers=[in_features] + list(hidden_sizes) + [action_dim],
             activation=activation,
             output_activation=output_activation,
+            fourier_features=fourier_features,
+            fourier_size=fourier_size,
+            fourier_sigma=fourier_sigma,
+            device=device,
         )
 
     def forward(self, *inputs):

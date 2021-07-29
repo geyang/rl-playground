@@ -7,6 +7,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Config')
     parser.add_argument('--seeds', nargs='+', type=int, help='seeds', required=True)
     args = parser.parse_args()
+    device='cuda'
 
     for seed in args.seeds:
         save_dir = f'./toy_mdp_analysis/dqn_toy_mdp/{seed}'
@@ -15,7 +16,7 @@ if __name__ == "__main__":
         dqn(env=env,
             test_env=test_env,
             exp_name=f'rand_mdp_fixed_dqn/{seed}',
-            ac_kwargs=dict(hidden_sizes=[16384,]),
+            ac_kwargs=dict(hidden_sizes=[512,], fourier_features=True, fourier_size=8, fourier_sigma=1, device=device),
             gamma=0.9,
             ep_limit=10,
             lr=1e-3,
@@ -27,6 +28,6 @@ if __name__ == "__main__":
             seed=seed,
             steps_per_epoch=1000,
             epochs=3000,
-            device='cuda',
+            device=device,
             save_dir=save_dir,
         )

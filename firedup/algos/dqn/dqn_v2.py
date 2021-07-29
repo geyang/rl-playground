@@ -51,7 +51,7 @@ Deep Q-Network
 
 def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, steps_per_epoch=5000, epochs=100,
         replay_size=int(1e6), gamma=0.99, min_replay_history=20000, epsilon_start=0.9,
-        epsilon_end=0.01, epsilon_decay=200, epsilon_eval=0.001, lr=1e-3, momentum=0.9, ep_limit=1000, update_interval=4, target_update_interval=8000,
+        epsilon_end=0.01, epsilon_decay=200, epsilon_eval=0.001, lr=1e-3, ep_limit=1000, update_interval=4, target_update_interval=8000,
         batch_size=100, save_freq=1, device='cuda', save_dir=None):
     __d = locals()
     from ml_logger import ML_Logger
@@ -96,7 +96,7 @@ def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, step
 
     # Value train op
     value_params = main.q.parameters()
-    value_optimizer = torch.optim.SGD(value_params, lr=lr, momentum=momentum)
+    value_optimizer = torch.optim.Adam(value_params, lr=lr)
 
     # Initializing targets to match main variables
     target.load_state_dict(main.state_dict())
