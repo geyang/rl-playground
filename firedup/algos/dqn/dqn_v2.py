@@ -52,7 +52,7 @@ Deep Q-Network
 def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, steps_per_epoch=5000, epochs=100,
         replay_size=int(1e6), gamma=0.99, min_replay_history=20000, epsilon_start=0.9,
         epsilon_end=0.01, epsilon_decay=200, epsilon_eval=0.001, lr=1e-3, ep_limit=1000, update_interval=4, target_update_interval=8000,
-        batch_size=100, save_freq=1, device='cuda', save_dir=None):
+        batch_size=100, save_freq=1, device='cuda', save_dir=None, no_target=False):
     __d = locals()
     from ml_logger import ML_Logger
     logger = ML_Logger(prefix=f"rl_transfer/rl_playground/dqn/{exp_name}")
@@ -84,8 +84,11 @@ def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, step
     main.to(device)
 
     # Target network
-    target = q_network(in_features=obs_dim, **ac_kwargs)
-    target.to(device)
+    if no_target:
+        target = main
+    else:
+        target = q_network(in_features=obs_dim, **ac_kwargs)
+        target.to(device)
 
     # Experience buffer
     replay_buffer = ReplayBuffer(obs_dim=obs_dim, act_dim=act_dim, size=replay_size)
@@ -99,7 +102,8 @@ def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, step
     value_optimizer = torch.optim.RMSprop(value_params, lr=lr)
 
     # Initializing targets to match main variables
-    target.load_state_dict(main.state_dict())
+    if not no_target:
+        target.load_state_dict(main.state_dict())
 
     def get_action(o, epsilon):
         """Select an action from the set of available actions.
@@ -189,7 +193,7 @@ def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, step
             logger.store(LossQ=value_loss.item(), QVals=q_pi.data.cpu().numpy())
 
         # syncs weights from online to target network
-        if t % target_update_interval == 0:
+        if (not no_target) and (t % target_update_interval == 0):
             target.load_state_dict(main.state_dict())
 
         # End of epoch wrap-up

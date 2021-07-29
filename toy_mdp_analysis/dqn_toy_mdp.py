@@ -7,6 +7,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Config')
     parser.add_argument('--seeds', nargs='+', type=int, help='seeds', required=True)
     parser.add_argument('--fft', action='store_true')
+    parser.add_argument('--no_target', action='store_true')
     args = parser.parse_args()
     device='cuda'
 
@@ -22,6 +23,10 @@ if __name__ == "__main__":
         fourier_sigma = -1
         exp_name = 'rand_mdp_fixed_dqn'
         save_dir = 'toy_mdp_analysis/dqn_toy_mdp'
+
+    if args.no_target:
+        exp_name += '_no_tgt'
+        save_dir += '_no_tgt'
 
     for seed in args.seeds:
         save_dir = f'./{save_dir}/{seed}'
@@ -44,4 +49,5 @@ if __name__ == "__main__":
             epochs=3000,
             device=device,
             save_dir=save_dir,
+            no_target=args.no_target,
         )
