@@ -31,6 +31,7 @@ class RandMDP(gym.Env):
         self.time += 1
         kink = self.kinks[action]
         value = self.values[action]
+        rew = self.obs
 
         if self.obs < kink[0]:
             self.obs = value[0] + (value[1]-value[0])/kink[0]*self.obs
@@ -40,7 +41,7 @@ class RandMDP(gym.Env):
             self.obs = value[2] + (value[3] - value[2])/(1 - kink[1])*(self.obs - kink[1])
         assert 0 <= self.obs <= 1
 
-        return self.obs, self.obs, (self.time >= 10), {}
+        return self.obs, rew, (self.time >= 10), {}
 
     def reset(self):
         self.time=0
