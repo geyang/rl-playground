@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
     if args.fft:
         fourier_features = True
-        fourier_size = 200
+        fourier_size = 8
         fourier_sigma = 10
         exp_name = 'rand_mdp_fixed_dqn_fft'
         save_dir = 'toy_mdp_analysis/dqn_toy_mdp_fft'
@@ -33,7 +33,7 @@ if __name__ == "__main__":
             ac_kwargs=dict(hidden_sizes=[512,], fourier_features=fourier_features, fourier_size=fourier_size, fourier_sigma=fourier_sigma, device=device),
             gamma=0.9,
             ep_limit=10,
-            lr=1e-3,
+            lr=1e-4,
             replay_size=int(1e4),
             batch_size=128,
             target_update_interval=500,

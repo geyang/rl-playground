@@ -96,7 +96,7 @@ def dqn(env, test_env, exp_name, q_network=core.QMlp, ac_kwargs={}, seed=0, step
 
     # Value train op
     value_params = main.q.parameters()
-    value_optimizer = torch.optim.Adam(value_params, lr=lr)
+    value_optimizer = torch.optim.RMSprop(value_params, lr=lr)
 
     # Initializing targets to match main variables
     target.load_state_dict(main.state_dict())
