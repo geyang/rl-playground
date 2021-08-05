@@ -42,7 +42,7 @@ def perform_vi(states, rewards, dyn_mats, gamma=0.9, eps=1e-5):
     return q_values, deltas
 
 
-def supervised(states, values, dyn_mats, lr=4e-4, gamma=0.9, n_epochs=100):
+def supervised(states, values, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=100):
     # Ge: need to initialize the Q function at zero
     Q = nn.Sequential(
         nn.Linear(1, 400),
@@ -130,13 +130,8 @@ class RFF(nn.Module):
         return torch.cat([torch.cos(2 * np.pi * x @ self.B.T),
                           torch.sin(2 * np.pi * x @ self.B.T)], dim=1)
 
-class OverParam(nn.Module):
-    def __init__(self, ):
-        self. =
-        super().__init__()
 
-
-def supervised_over_param(states, values, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=100, B_scale=1):
+def supervised_rff(states, values, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=100, B_scale=1):
     # Ge: need to initialize the Q function at zero
     Q = nn.Sequential(
         RFF(1, 200, scale=B_scale),
@@ -170,7 +165,7 @@ def supervised_over_param(states, values, dyn_mats, lr=1e-4, gamma=0.9, n_epochs
     return q_values, losses
 
 
-def perform_deep_over_param(states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=400, B_scale=1, target_freq=1):
+def perform_deep_vi_rff(states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=400, B_scale=1, target_freq=1):
     # Ge: need to initialize the Q function at zero
     Q = nn.Sequential(
         RFF(1, 200, scale=B_scale),
@@ -198,7 +193,6 @@ def perform_deep_over_param(states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epo
             Q_target.load_state_dict(Q.state_dict())
 
         q_max, actions = Q_target(states).max(dim=-1)
-        # q_max, _ = Q(states)[:, actions]
         td_target = rewards + gamma * dyn_mats @ q_max.detach()
         td_loss = l1(Q(states), td_target.T)
         losses.append(td_loss.detach().numpy())
@@ -223,7 +217,7 @@ if __name__ == "__main__":
     from matplotlib import pyplot as plt
 
     with doc:
-        num_states = 20
+        num_states = 200
         torch.manual_seed(0)
         mdp = RandMDP(seed=0, option='fixed')
         states, rewards, dyn_mats = mdp.get_discrete_mdp(num_states=num_states)
@@ -271,30 +265,49 @@ if __name__ == "__main__":
     replace the input layer with RFF embedding.
     """
     with doc:
-        q_values, losses = supervised_over_param(states, gt_q_values, dyn_mats, B_scale=10)
+        q_values, losses = supervised_rff(states, gt_q_values, dyn_mats, B_scale=10)
 
-    plot_value(states, q_values, losses, fig_prefix="supervised_over_param",
+    plot_value(states, q_values, losses, fig_prefix="supervised_rff",
                title=f"RFF Supervised {10}", doc=doc.table().figure_row())
     doc @ """
     ## DQN with RFF 
     
-    We can now apply this to DQN and it works right away!
+    We can now apply this to DQN and it works right away! Using scale of 5
     """
     with doc:
-        q_values, losses = perform_deep_vi_over_param(states, rewards, dyn_mats, n_epochs=500, B_scale=10)
+        q_values, losses = perform_deep_vi_rff(states, rewards, dyn_mats, B_scale=10)
 
-    plot_value(states, q_values, losses, fig_prefix="dqn_over_param",
-               title=f"DQN w/ RFF {10}", doc=doc.table().figure_row())
+    plot_value(states, q_values, losses, fig_prefix=f"dqn_rff_{10}",
+               title=f"DQN RFF $\sigma={10}$", doc=doc.table().figure_row())
 
     doc @ """
-    ## DQN with RFF without Target
+    ## DQN without the Target Q
     
-    Try removing the target network
+    Setting the target network to off
     """
     with doc:
-        q_values, losses = perform_deep_vi_over_param(states, rewards, dyn_mats, n_epochs=500, B_scale=10,
-                                               target_freq=None)
+        q_values, losses = perform_deep_vi_rff(states, rewards, dyn_mats, B_scale=10, target_freq=None)
 
-    plot_value(states, q_values, losses, fig_prefix="dqn_over_param_no_target",
-               title=f"DQN w/ RFF {10}", doc=doc.table().figure_row())
+    plot_value(states, q_values, losses, fig_prefix=f"dqn_rff_no_target",
+               title=f"DQN RFF No Target", doc=doc.table().figure_row())
+
+    doc @ """
+    We can experiment with different scaling $\sigma$
+    """
+    with doc:
+        q_values, losses = perform_deep_vi_rff(states, rewards, dyn_mats, B_scale=1)
+
+    plot_value(states, q_values, losses, fig_prefix=f"dqn_rff_{1}",
+               title=f"DQN RFF $\sigma={1}$", doc=doc.table().figure_row())
+    with doc:
+        q_values, losses = perform_deep_vi_rff(states, rewards, dyn_mats, B_scale=3)
+
+    plot_value(states, q_values, losses, fig_prefix=f"dqn_rff_{3}",
+               title=f"DQN RFF $\sigma={3}$", doc=doc.table().figure_row())
+
+    with doc:
+        q_values, losses = perform_deep_vi_rff(states, rewards, dyn_mats, B_scale=5)
+
+    plot_value(states, q_values, losses, fig_prefix=f"dqn_rff_{5}",
+               title=f"DQN RFF $\sigma={5}$", doc=doc.table().figure_row())
     doc.flush()
