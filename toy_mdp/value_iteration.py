@@ -16,14 +16,15 @@ def plot_value(states, q_values, losses, fig_prefix, title=None, doc=doc):
     plt.legend()
     plt.xlabel('State [0, 1)')
     plt.ylabel('Value')
-    doc.savefig(f'{__file__[:-3]}/figures/{fig_prefix}.png?ts={doc.now("%f")}', dpi=300, zoom=0.3)
+    doc.savefig(f'{os.path.basename(__file__)[:-3]}/{fig_prefix}.png?ts={doc.now("%f")}', dpi=300, zoom=0.3)
     plt.close()
 
     plt.plot(losses)
     plt.hlines(0, 0, len(losses), linestyle='--', color='gray')
     plt.title("Loss")
     plt.xlabel('Optimization Steps')
-    doc.savefig(f'{__file__[:-3]}/figures/{fig_prefix}_loss.png?ts={doc.now("%f")}', dpi=300, zoom=0.3)
+    doc.savefig(f'{os.path.basename(__file__)[:-3]}/{fig_prefix}_loss.png?ts={doc.now("%f")}', dpi=300,
+                zoom=0.3)
     plt.close()
 
 
@@ -130,13 +131,8 @@ class RFF(nn.Module):
         return torch.cat([torch.cos(2 * np.pi * x @ self.B.T),
                           torch.sin(2 * np.pi * x @ self.B.T)], dim=1)
 
-class OverParam(nn.Module):
-    def __init__(self, ):
-        self. =
-        super().__init__()
 
-
-def supervised_over_param(states, values, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=100, B_scale=1):
+def supervised_rff(states, values, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=100, B_scale=1):
     # Ge: need to initialize the Q function at zero
     Q = nn.Sequential(
         RFF(1, 200, scale=B_scale),
@@ -170,7 +166,7 @@ def supervised_over_param(states, values, dyn_mats, lr=1e-4, gamma=0.9, n_epochs
     return q_values, losses
 
 
-def perform_deep_over_param(states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=400, B_scale=1, target_freq=1):
+def perform_deep_vi_rff(states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=400, B_scale=1, target_freq=1):
     # Ge: need to initialize the Q function at zero
     Q = nn.Sequential(
         RFF(1, 200, scale=B_scale),
@@ -271,7 +267,7 @@ if __name__ == "__main__":
     replace the input layer with RFF embedding.
     """
     with doc:
-        q_values, losses = supervised_over_param(states, gt_q_values, dyn_mats, B_scale=10)
+        q_values, losses = supervised_rff(states, gt_q_values, dyn_mats, B_scale=10)
 
     plot_value(states, q_values, losses, fig_prefix="supervised_over_param",
                title=f"RFF Supervised {10}", doc=doc.table().figure_row())
@@ -281,7 +277,7 @@ if __name__ == "__main__":
     We can now apply this to DQN and it works right away!
     """
     with doc:
-        q_values, losses = perform_deep_vi_over_param(states, rewards, dyn_mats, n_epochs=500, B_scale=10)
+        q_values, losses = perform_deep_vi_rff(states, rewards, dyn_mats, n_epochs=500, B_scale=10)
 
     plot_value(states, q_values, losses, fig_prefix="dqn_over_param",
                title=f"DQN w/ RFF {10}", doc=doc.table().figure_row())
@@ -292,7 +288,7 @@ if __name__ == "__main__":
     Try removing the target network
     """
     with doc:
-        q_values, losses = perform_deep_vi_over_param(states, rewards, dyn_mats, n_epochs=500, B_scale=10,
+        q_values, losses = perform_deep_vi_rff(states, rewards, dyn_mats, n_epochs=500, B_scale=10,
                                                target_freq=None)
 
     plot_value(states, q_values, losses, fig_prefix="dqn_over_param_no_target",
