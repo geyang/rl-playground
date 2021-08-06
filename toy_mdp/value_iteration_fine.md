@@ -87,3 +87,11 @@ q_values, losses = perform_deep_vi_rff(states, rewards, dyn_mats, B_scale=1)
 ```python
 q_values, losses = perform_deep_vi_rff(states, rewards, dyn_mats, B_scale=3)
 ```
+| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_3.png?ts=370587" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_3_loss.png?ts=816508" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
+
+```python
+q_values, losses = perform_deep_vi_rff(states, rewards, dyn_mats, B_scale=5)
+```
+| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_5.png?ts=297460" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_5_loss.png?ts=181453" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
