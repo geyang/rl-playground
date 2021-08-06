@@ -16,14 +16,14 @@ def plot_value(states, q_values, losses, fig_prefix, title=None, doc=doc):
     plt.legend()
     plt.xlabel('State [0, 1)')
     plt.ylabel('Value')
-    doc.savefig(f'{__file__[:-3]}/figures/{fig_prefix}.png?ts={doc.now("%f")}', dpi=300, zoom=0.3)
+    doc.savefig(f'{os.path.basename(__file__)[:-3]}/{fig_prefix}.png?ts={doc.now("%f")}', dpi=300, zoom=0.3)
     plt.close()
 
     plt.plot(losses)
     plt.hlines(0, 0, len(losses), linestyle='--', color='gray')
     plt.title("Loss")
     plt.xlabel('Optimization Steps')
-    doc.savefig(f'{__file__[:-3]}/figures/{fig_prefix}_loss.png?ts={doc.now("%f")}', dpi=300, zoom=0.3)
+    doc.savefig(f'{os.path.basename(__file__)[:-3]}/{fig_prefix}_loss.png?ts={doc.now("%f")}', dpi=300, zoom=0.3)
     plt.close()
 
 
