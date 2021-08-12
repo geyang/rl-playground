@@ -144,16 +144,18 @@ class LFF(nn.Module):
     get torch.std_mean(self.B)
     """
 
-    def __init__(self, input_dim, mapping_size, scale=1):
+    def __init__(self, input_dim, mapping_size, scale=1.0):
         super().__init__()
         self.input_dim = input_dim
         self.output_dim = mapping_size * 2
         self.linear = nn.Linear(input_dim, self.output_dim)
-        nn.init.normal_(self.linear.weight, 0, scale / self.input_dim)
+        # nn.init.normal_(self.linear.weight, 0, scale / self.input_dim)
+        nn.init.uniform_(self.linear.weight, -scale / self.input_dim, scale / self.input_dim)
+        nn.init.uniform_(self.linear.bias, -1, 1)
 
     def forward(self, x):
-        x = self.linear(2 * np.pi * x)
-        return torch.sin(x)
+        x = self.linear(x)
+        return torch.sin(2 * np.pi * x)
 
 
 class RFF(LFF):
@@ -278,14 +280,14 @@ def perform_deep_vi_lff_mlp(states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epo
     return q_values, *stats.values()
 
 
-def supervised_lff_mlp(states, values, lr=1e-4, n_epochs=400, B_scale=1, latent_scale=5):
+def supervised_lff_mlp(states, values, lr=1e-4, n_epochs=400, B_scale=1, latent_scale=1, latent_dim=400):
     # Ge: need to initialize the Q function at zero
     Q = nn.Sequential(
-        LFF(1, 200, scale=B_scale),
-        LFF(400, 200, scale=latent_scale),
-        LFF(400, 200, scale=latent_scale),
-        LFF(400, 200, scale=latent_scale),
-        nn.Linear(400, 2),
+        LFF(1, latent_dim // 2, scale=B_scale),
+        LFF(latent_dim, latent_dim // 2, scale=latent_scale),
+        LFF(latent_dim, latent_dim // 2, scale=latent_scale),
+        LFF(latent_dim, latent_dim // 2, scale=latent_scale),
+        nn.Linear(latent_dim, 2),
     )
 
     optim = torch.optim.RMSprop(Q.parameters(), lr=lr)
@@ -315,11 +317,12 @@ def supervised_lff_mlp(states, values, lr=1e-4, n_epochs=400, B_scale=1, latent_
 
 if __name__ == "__main__":
     doc @ """
-    ## Tabular Q-learning (Ground-truth)
+    ## Learned Fourier Features
     
-    Here is the ground truth value function generated via tabular
-    value iteration. It shows even for simple dynamics, the value
-    function can be exponentially more complex.
+    We use stacked, four-layer Learned Fourier Networks (LFN) to fit to a complex value function.
+    
+    The figure table below shows that with correct scaling, the spectral bias persist across networks
+    of different width across 8 octaves of latent dimension.
     """
     from rand_mdp import RandMDP
     from matplotlib import pyplot as plt
@@ -341,12 +344,28 @@ if __name__ == "__main__":
     
     The random matrix simply does not update that much!
     """
-    with doc:
-        q_values, losses, B_stds, B_means = supervised_lff_mlp(states, gt_q_values, B_scale=8, n_epochs=100)
+    with doc, doc.table() as table:
+        for dim, n_epochs in zip([24, 50, 100, 200, 400, 800, 1600], [4000, 2000, 500, 250, 100, 100, 100]):
+            r = table.figure_row()
+            all_losses = {}
+            for scale in [0.1, 1, 10, 20]:
+                q_values, losses, B_stds, B_means = supervised_lff_mlp(states, gt_q_values, B_scale=8,
+                                                                       n_epochs=n_epochs, latent_dim=dim,
+                                                                       latent_scale=scale)
+                plt.figure('losses')
+                plt.plot(losses, label=f"scale={scale}")
 
-    plot_value(states, q_values, losses, B_stds, B_means, fig_prefix=f"supervised_lff_mlp",
-               title=f"LFF $\sigma={np.mean(B_stds)}$", doc=doc.table().figure_row())
-    doc.flush()
+                plt.figure(f'scale {scale}')
+                plt.plot(states, q_values[0], label="action 1")
+                plt.plot(states, q_values[1], label="action 2")
+                r.savefig(os.path.basename(__file__)[:-3] + f"/supervised_lff_mlp_dim-{dim}_sig-{scale}.png",
+                          title=f"dim={dim} $\sigma={scale}$" if scale == 0.1 else f"$\sigma={scale}$")
+                plt.close()
+
+            plt.figure('losses')
+            plt.legend(frameon=False)
+            r.savefig(os.path.basename(__file__)[:-3] + f"/supervised_lff_mlp_loss_dim-{dim}_sig-{scale}.png")
+            plt.close()
 
     doc @ """
     ## DQN w/ LFF
