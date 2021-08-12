@@ -225,8 +225,8 @@ if __name__ == "__main__":
         states, rewards, dyn_mats = mdp.get_discrete_mdp(num_states=num_states)
         q_values, losses = perform_vi(states, rewards, dyn_mats)
 
-    os.makedirs('data', exist_ok=True)
-    np.savetxt("data/q_values.csv", q_values, delimiter=',')
+    # os.makedirs('data', exist_ok=True)
+    # np.savetxt("data/q_values.csv", q_values, delimiter=',')
 
     gt_q_values = q_values  # used later
 
