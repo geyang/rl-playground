@@ -12,6 +12,6 @@ from firedup.algos.dqn.dqn import dqn
 # Loggers
 from firedup.utils.logx import Logger, EpochLogger
 
-print(__file__[:-11])
-with open(os.path.join(__file__[:-11], "VERSION"), 'r') as f:
+print(os.path.basename(__file__)[:-11])
+with open(os.path.join(os.path.basename(__file__)[:-11], "VERSION"), 'r') as f:
     __version__ = f.read()
