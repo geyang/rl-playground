@@ -277,7 +277,8 @@ def perform_deep_vi_lff(states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=
         optim.step()
 
     q_values = Q(states).T.detach().numpy()
-    return q_values, *stats.values()
+    avg_returns = eval_q_policy(Q)
+    return avg_returns, q_values, *stats.values()
 
 
 def supervised_lff(states, values, lr=1e-4, n_epochs=400, B_scale=1):
@@ -317,6 +318,25 @@ def supervised_lff(states, values, lr=1e-4, n_epochs=400, B_scale=1):
     q_values = values_bar.T.detach().numpy()
     return q_values, *stats.values()
 
+def eval_q_policy(q, num_eval=100):
+    """Assumes discrete action such that policy is derived by argmax a Q(s,a)"""
+    from rand_mdp import RandMDP
+    torch.manual_seed(0)
+    env = RandMDP(seed=0, option='fixed')
+    returns = []
+
+    for i in range(num_eval):
+        done = False
+        obs = env.reset()
+        total_rew = 0
+        while not done:
+            obs = torch.FloatTensor(obs).unsqueeze(-1)
+            q_max, action = q(obs).max(dim=-1)
+            obs, rew, done, _ = env.step(action.item())
+            total_rew += rew
+        returns.append(total_rew)
+
+    return np.mean(returns)
 
 if __name__ == "__main__":
     doc @ """
@@ -340,29 +360,29 @@ if __name__ == "__main__":
 
     plot_value(states, q_values, losses, fig_prefix="value_iteration",
                title="Value Iteration on Toy MDP", doc=doc.table().figure_row())
-
-    doc @ """
-    ## Supervised Learning with RFF
-    
-    The same supervised experiment, instantly improve in fit if we 
-    replace the input layer with RFF embedding.
-    """
-    with doc:
-        q_values, losses = supervised_rff(states, gt_q_values, B_scale=1, n_epochs=8000)
-
-    plot_value(states, q_values, losses, fig_prefix="supervised_rff",
-               title=f"RFF Supervised {10}", doc=doc.table().figure_row())
-
-    doc @ """
-    # Supervised Learning with Learned Random Fourier Features (LFF)
-    
-    The random matrix simply does not update that much!
-    """
-    with doc:
-        q_values, losses, B_stds, B_means = supervised_lff(states, gt_q_values, B_scale=10)
-
-    plot_value(states, q_values, losses, B_stds, B_means, fig_prefix=f"supervised_lff",
-               title=f"LFF $\sigma={np.mean(B_stds)}$", doc=doc.table().figure_row())
+    #
+    # doc @ """
+    # ## Supervised Learning with RFF
+    #
+    # The same supervised experiment, instantly improve in fit if we
+    # replace the input layer with RFF embedding.
+    # """
+    # with doc:
+    #     q_values, losses = supervised_rff(states, gt_q_values, B_scale=1, n_epochs=8000)
+    #
+    # plot_value(states, q_values, losses, fig_prefix="supervised_rff",
+    #            title=f"RFF Supervised {10}", doc=doc.table().figure_row())
+    #
+    # doc @ """
+    # # Supervised Learning with Learned Random Fourier Features (LFF)
+    #
+    # The random matrix simply does not update that much!
+    # """
+    # with doc:
+    #     q_values, losses, B_stds, B_means = supervised_lff(states, gt_q_values, B_scale=10)
+    #
+    # plot_value(states, q_values, losses, B_stds, B_means, fig_prefix=f"supervised_lff",
+    #            title=f"LFF $\sigma={np.mean(B_stds)}$", doc=doc.table().figure_row())
 
     doc @ """
     ## DQN w/ LFF
@@ -372,8 +392,9 @@ if __name__ == "__main__":
     """
 
     with doc:
-        q_values, losses, B_stds, B_means = perform_deep_vi_lff(states, rewards, dyn_mats, B_scale=10)
+        avg_returns, q_values, losses, B_stds, B_means = perform_deep_vi_lff(states, rewards, dyn_mats, B_scale=10)
 
+    print(f"Avg return for DQN+LFF (sigma 5) is {avg_returns}")
     plot_value(states, q_values, losses, B_stds, B_means, fig_prefix="dqn_lff", title="DQN w/ LFF",
                doc=doc.table().figure_row())
 
