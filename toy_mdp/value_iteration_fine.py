@@ -2,6 +2,7 @@ import os
 from copy import deepcopy
 
 import numpy as np
+import torch
 import torch.nn as nn
 import torch.optim
 from cmx import doc
@@ -74,7 +75,8 @@ def supervised(states, values, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=100):
         optim.step()
 
     q_values = values_bar.T.detach().numpy()
-    return q_values, losses
+    avg_returns = eval_q_policy(Q)
+    return q_values, losses, avg_returns
 
 
 def perform_deep_vi(states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=400):
@@ -115,7 +117,8 @@ def perform_deep_vi(states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=400)
         optim.step()
 
     q_values = Q(states).T.detach().numpy()
-    return q_values, losses
+    avg_returns = eval_q_policy(Q)
+    return q_values, losses, avg_returns
 
 
 class RFF(nn.Module):
@@ -162,7 +165,8 @@ def supervised_rff(states, values, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=100, B
         optim.step()
 
     q_values = values_bar.T.detach().numpy()
-    return q_values, losses
+    avg_returns = eval_q_policy(Q)
+    return q_values, losses, avg_returns
 
 
 def perform_deep_vi_rff(states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=400, B_scale=1, target_freq=1):
@@ -202,8 +206,28 @@ def perform_deep_vi_rff(states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=
         optim.step()
 
     q_values = Q(states).T.detach().numpy()
-    return q_values, losses
+    avg_returns = eval_q_policy(Q)
+    return q_values, losses, avg_returns
 
+def eval_q_policy(q, num_eval=100):
+    """Assumes discrete action such that policy is derived by argmax a Q(s,a)"""
+    from rand_mdp import RandMDP
+    torch.manual_seed(0)
+    env = RandMDP(seed=0, option='fixed')
+    returns = []
+
+    for i in range(num_eval):
+        done = False
+        obs = env.reset()
+        total_rew = 0
+        while not done:
+            obs = torch.FloatTensor(obs).unsqueeze(-1)
+            q_max, action = q(obs).max(dim=-1)
+            obs, rew, done, _ = env.step(action.item())
+            total_rew += rew
+        returns.append(total_rew)
+
+    return np.mean(returns)
 
 if __name__ == "__main__":
     doc @ """
@@ -241,8 +265,9 @@ if __name__ == "__main__":
     """
 
     with doc:
-        q_values, losses = perform_deep_vi(states, rewards, dyn_mats)
+        q_values, losses, avg_returns = perform_deep_vi(states, rewards, dyn_mats)
 
+    print(f"Avg return for DQN is {avg_returns}")
     plot_value(states, q_values, losses, fig_prefix="dqn",
                title="DQN on Toy MDP", doc=doc.table().figure_row())
 
@@ -255,8 +280,9 @@ if __name__ == "__main__":
     with 20 states, and even less so with 200.
     """
     with doc:
-        q_values, losses = supervised(states, gt_q_values, dyn_mats, n_epochs=8000)
+        q_values, losses, avg_returns = supervised(states, gt_q_values, dyn_mats, n_epochs=8000)
 
+    print(f"Avg return for NN+sup is {avg_returns}")
     plot_value(states, q_values, losses, fig_prefix="supervised",
                title="Supervised Value Function", doc=doc.table().figure_row())
 
@@ -267,8 +293,9 @@ if __name__ == "__main__":
     replace the input layer with RFF embedding.
     """
     with doc:
-        q_values, losses = supervised_rff(states, gt_q_values, dyn_mats, B_scale=10)
+        q_values, losses, avg_returns = supervised_rff(states, gt_q_values, dyn_mats, B_scale=10)
 
+    print(f"Avg return for NN+RFF+sup is {avg_returns}")
     plot_value(states, q_values, losses, fig_prefix="supervised_rff",
                title=f"RFF Supervised {10}", doc=doc.table().figure_row())
     doc @ """
@@ -277,8 +304,9 @@ if __name__ == "__main__":
     We can now apply this to DQN and it works right away! Using scale of 5
     """
     with doc:
-        q_values, losses = perform_deep_vi_rff(states, rewards, dyn_mats, B_scale=10)
+        q_values, losses, avg_returns = perform_deep_vi_rff(states, rewards, dyn_mats, B_scale=10)
 
+    print(f"Avg return for DQN+RFF is {avg_returns}")
     plot_value(states, q_values, losses, fig_prefix=f"dqn_rff_{10}",
                title=f"DQN RFF $\sigma={10}$", doc=doc.table().figure_row())
 
@@ -288,8 +316,8 @@ if __name__ == "__main__":
     Setting the target network to off
     """
     with doc:
-        q_values, losses = perform_deep_vi_rff(states, rewards, dyn_mats, B_scale=10, target_freq=None)
-
+        q_values, losses, avg_returns = perform_deep_vi_rff(states, rewards, dyn_mats, B_scale=10, target_freq=None)
+    print(f"Avg return for DQN+RFF-tgt is {avg_returns}")
     plot_value(states, q_values, losses, fig_prefix=f"dqn_rff_no_target",
                title=f"DQN RFF No Target", doc=doc.table().figure_row())
 
@@ -297,19 +325,19 @@ if __name__ == "__main__":
     We can experiment with different scaling $\sigma$
     """
     with doc:
-        q_values, losses = perform_deep_vi_rff(states, rewards, dyn_mats, B_scale=1)
-
+        q_values, losses, avg_returns = perform_deep_vi_rff(states, rewards, dyn_mats, B_scale=1)
+    print(f"Avg return for DQN+RFF (sigma 1) is {avg_returns}")
     plot_value(states, q_values, losses, fig_prefix=f"dqn_rff_{1}",
                title=f"DQN RFF $\sigma={1}$", doc=doc.table().figure_row())
     with doc:
-        q_values, losses = perform_deep_vi_rff(states, rewards, dyn_mats, B_scale=3)
-
+        q_values, losses, avg_returns = perform_deep_vi_rff(states, rewards, dyn_mats, B_scale=3)
+    print(f"Avg return for DQN+RFF (sigma 3) is {avg_returns}")
     plot_value(states, q_values, losses, fig_prefix=f"dqn_rff_{3}",
                title=f"DQN RFF $\sigma={3}$", doc=doc.table().figure_row())
 
     with doc:
-        q_values, losses = perform_deep_vi_rff(states, rewards, dyn_mats, B_scale=5)
-
+        q_values, losses, avg_returns = perform_deep_vi_rff(states, rewards, dyn_mats, B_scale=5)
+    print(f"Avg return for DQN+RFF (sigma 5) is {avg_returns}")
     plot_value(states, q_values, losses, fig_prefix=f"dqn_rff_{5}",
                title=f"DQN RFF $\sigma={5}$", doc=doc.table().figure_row())
     doc.flush()
