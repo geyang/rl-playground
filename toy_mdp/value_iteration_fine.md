@@ -12,7 +12,7 @@ mdp = RandMDP(seed=0, option='fixed')
 states, rewards, dyn_mats = mdp.get_discrete_mdp(num_states=num_states)
 q_values, losses = perform_vi(states, rewards, dyn_mats)
 ```
-| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/value_iteration.png?ts=688272" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/value_iteration_loss.png?ts=134124" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/value_iteration.png?ts=656837" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/value_iteration_loss.png?ts=037214" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
 
@@ -45,7 +45,7 @@ doc.print(f"Avg return for DQN is {returns}")
 ```
 Avg return for DQN is 4.900595889220218
 ```
-| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn.png?ts=882681" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_loss.png?ts=260049" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn.png?ts=748795" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_loss.png?ts=072056" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
 
@@ -67,7 +67,7 @@ doc.print(f"Avg return for NN+sup is {returns}")
 ```
 Avg return for NN+sup is 4.860335613303359
 ```
-| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/supervised.png?ts=624456" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/supervised_loss.png?ts=981443" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/supervised.png?ts=053952" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/supervised_loss.png?ts=364678" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
 
@@ -100,7 +100,7 @@ doc.print(f"Avg return for NN+RFF+sup is {returns}")
 ```
 Avg return for NN+RFF+sup is 6.240936462960335
 ```
-| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/supervised_rff.png?ts=666107" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/supervised_rff_loss.png?ts=067480" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/supervised_rff.png?ts=537889" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/supervised_rff_loss.png?ts=854375" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
 
@@ -119,7 +119,7 @@ doc.print(f"Avg return for DQN+RFF is {returns}")
 ```
 Avg return for DQN+RFF is 6.264328494839547
 ```
-| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_10.png?ts=861106" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_10_loss.png?ts=446203" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_10.png?ts=298903" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_10_loss.png?ts=753792" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
 
@@ -138,13 +138,13 @@ doc.print(f"Avg return for DQN+RFF-tgt is {returns}")
 ```
 Avg return for DQN+RFF-tgt is 6.264328494839547
 ```
-| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_no_target.png?ts=985558" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_no_target_loss.png?ts=373217" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_no_target.png?ts=138960" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_no_target_loss.png?ts=463975" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
 
 We can experiment with different scaling $\sigma$
 
-| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_1.png?ts=683410" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_1_loss.png?ts=094174" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_1.png?ts=909467" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_1_loss.png?ts=225760" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
 $\sigma=1$
@@ -152,7 +152,7 @@ $\sigma=1$
 Avg return for DQN+RFF (sigma 1) is 5.575663371516376
 ```
 
-| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_3.png?ts=083679" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_3_loss.png?ts=519547" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_3.png?ts=675801" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_3_loss.png?ts=003753" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
 $\sigma=3$
@@ -160,7 +160,7 @@ $\sigma=3$
 Avg return for DQN+RFF (sigma 3) is 6.209378721613539
 ```
 
-| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_5.png?ts=838455" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_5_loss.png?ts=221713" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_5.png?ts=482932" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_5_loss.png?ts=811567" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
 $\sigma=5$
