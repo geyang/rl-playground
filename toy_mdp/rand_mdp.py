@@ -34,6 +34,7 @@ class RandMDP(gym.Env):
         self.time += 1
         kink = self.kinks[action]
         value = self.values[action]
+        rew = np.copy(self.obs)
 
         if self.obs < kink[0]:
             self.obs = value[0] + (value[1] - value[0]) / kink[0] * self.obs
@@ -43,10 +44,11 @@ class RandMDP(gym.Env):
             self.obs = value[2] + (value[3] - value[2]) / (1 - kink[1]) * (self.obs - kink[1])
         assert 0 <= self.obs <= 1
 
-        return self.obs, self.obs, (self.time >= 10), {}
+        return self.obs, rew, (self.time >= 10), {}
 
     def reset(self):
-        self.obs = self.rng.random.rand()
+        self.time = 0
+        self.obs = np.array([self.rng.random()])
         return self.obs
 
     def get_discrete_mdp(self, num_states=100):
