@@ -274,7 +274,7 @@ if __name__ == "__main__":
     We can experiment with different scaling $\sigma$
     """
     for sigma in [1, 3, 5]:
-        with doc @ f"$\sigmal={sigma}$", doc.table().figure_row() as r:
+        with doc @ f"$\sigma={sigma}$", doc.table().figure_row() as r:
             Q = get_Q_rff(B_scale=sigma)
             q_values, losses = perform_deep_vi(Q, states, rewards, dyn_mats)
             returns = eval_q_policy(Q)
