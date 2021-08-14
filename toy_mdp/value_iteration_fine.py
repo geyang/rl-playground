@@ -187,6 +187,7 @@ if __name__ == "__main__":
                 nn.Linear(400, 2),
             )
 
+
         Q = get_Q_mlp()
         q_values, losses = perform_deep_vi(Q, states, rewards, dyn_mats)
         returns = eval_q_policy(Q)
@@ -232,6 +233,7 @@ if __name__ == "__main__":
                 nn.Linear(400, 2),
             )
 
+
         Q = get_Q_rff(B_scale=10)
         q_values, losses = supervised(Q, states, gt_q_values)
         returns = eval_q_policy(Q)
@@ -274,13 +276,14 @@ if __name__ == "__main__":
     We can experiment with different scaling $\sigma$
     """
     for sigma in [1, 3, 5]:
-        with doc @ f"$\sigma={sigma}$", doc.table().figure_row() as r:
-            Q = get_Q_rff(B_scale=sigma)
-            q_values, losses = perform_deep_vi(Q, states, rewards, dyn_mats)
-            returns = eval_q_policy(Q)
+        r = doc.table().figure_row()
+        Q = get_Q_rff(B_scale=sigma)
+        q_values, losses = perform_deep_vi(Q, states, rewards, dyn_mats)
+        returns = eval_q_policy(Q)
 
-            doc.print(f"Avg return for DQN+RFF (sigma {sigma}) is {returns}")
+        doc @ f"$\sigma={sigma}$"
+        doc.print(f"Avg return for DQN+RFF (sigma {sigma}) is {returns}")
 
-            plot_value(states, q_values, losses, fig_prefix=f"dqn_rff_{sigma}",
-                       title=f"DQN RFF $\sigma={sigma}$", doc=r)
+        plot_value(states, q_values, losses, fig_prefix=f"dqn_rff_{sigma}", title=f"DQN RFF $\sigma={sigma}$", doc=r)
+
     doc.flush()

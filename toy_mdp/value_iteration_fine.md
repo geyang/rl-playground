@@ -12,7 +12,7 @@ mdp = RandMDP(seed=0, option='fixed')
 states, rewards, dyn_mats = mdp.get_discrete_mdp(num_states=num_states)
 q_values, losses = perform_vi(states, rewards, dyn_mats)
 ```
-| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/value_iteration.png?ts=839167" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/value_iteration_loss.png?ts=250079" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/value_iteration.png?ts=688272" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/value_iteration_loss.png?ts=134124" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
 
@@ -35,6 +35,7 @@ def get_Q_mlp():
         nn.Linear(400, 2),
     )
 
+
 Q = get_Q_mlp()
 q_values, losses = perform_deep_vi(Q, states, rewards, dyn_mats)
 returns = eval_q_policy(Q)
@@ -44,7 +45,7 @@ doc.print(f"Avg return for DQN is {returns}")
 ```
 Avg return for DQN is 4.900595889220218
 ```
-| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn.png?ts=456513" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_loss.png?ts=823388" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn.png?ts=882681" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_loss.png?ts=260049" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
 
@@ -66,7 +67,7 @@ doc.print(f"Avg return for NN+sup is {returns}")
 ```
 Avg return for NN+sup is 4.860335613303359
 ```
-| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/supervised.png?ts=806254" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/supervised_loss.png?ts=201911" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/supervised.png?ts=624456" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/supervised_loss.png?ts=981443" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
 
@@ -88,6 +89,7 @@ def get_Q_rff(B_scale):
         nn.Linear(400, 2),
     )
 
+
 Q = get_Q_rff(B_scale=10)
 q_values, losses = supervised(Q, states, gt_q_values)
 returns = eval_q_policy(Q)
@@ -98,7 +100,7 @@ doc.print(f"Avg return for NN+RFF+sup is {returns}")
 ```
 Avg return for NN+RFF+sup is 6.240936462960335
 ```
-| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/supervised_rff.png?ts=891625" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/supervised_rff_loss.png?ts=323219" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/supervised_rff.png?ts=666107" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/supervised_rff_loss.png?ts=067480" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
 
@@ -117,7 +119,7 @@ doc.print(f"Avg return for DQN+RFF is {returns}")
 ```
 Avg return for DQN+RFF is 6.264328494839547
 ```
-| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_10.png?ts=865121" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_10_loss.png?ts=472949" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_10.png?ts=861106" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_10_loss.png?ts=446203" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
 
@@ -136,63 +138,32 @@ doc.print(f"Avg return for DQN+RFF-tgt is {returns}")
 ```
 Avg return for DQN+RFF-tgt is 6.264328494839547
 ```
-| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_no_target.png?ts=779001" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_no_target_loss.png?ts=143284" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_no_target.png?ts=985558" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_no_target_loss.png?ts=373217" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
 
 We can experiment with different scaling $\sigma$
 
-$\sigma=1$
-```python
-Q = get_Q_rff(B_scale=sigma)
-q_values, losses = perform_deep_vi(Q, states, rewards, dyn_mats)
-returns = eval_q_policy(Q)
-
-doc.print(f"Avg return for DQN+RFF (sigma {sigma}) is {returns}")
-
-plot_value(states, q_values, losses, fig_prefix=f"dqn_rff_{sigma}",
-           title=f"DQN RFF $\sigma={sigma}$", doc=r)
-```
-
-| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_1.png?ts=560034" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_1_loss.png?ts=948273" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_1.png?ts=683410" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_1_loss.png?ts=094174" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
+$\sigma=1$
 ```
 Avg return for DQN+RFF (sigma 1) is 5.575663371516376
 ```
-$\sigma=3$
-```python
-Q = get_Q_rff(B_scale=sigma)
-q_values, losses = perform_deep_vi(Q, states, rewards, dyn_mats)
-returns = eval_q_policy(Q)
 
-doc.print(f"Avg return for DQN+RFF (sigma {sigma}) is {returns}")
-
-plot_value(states, q_values, losses, fig_prefix=f"dqn_rff_{sigma}",
-           title=f"DQN RFF $\sigma={sigma}$", doc=r)
-```
-
-| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_3.png?ts=140769" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_3_loss.png?ts=601432" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_3.png?ts=083679" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_3_loss.png?ts=519547" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
+$\sigma=3$
 ```
 Avg return for DQN+RFF (sigma 3) is 6.209378721613539
 ```
-$\sigma=5$
-```python
-Q = get_Q_rff(B_scale=sigma)
-q_values, losses = perform_deep_vi(Q, states, rewards, dyn_mats)
-returns = eval_q_policy(Q)
 
-doc.print(f"Avg return for DQN+RFF (sigma {sigma}) is {returns}")
-
-plot_value(states, q_values, losses, fig_prefix=f"dqn_rff_{sigma}",
-           title=f"DQN RFF $\sigma={sigma}$", doc=r)
-```
-
-| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_5.png?ts=169633" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_5_loss.png?ts=553843" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_5.png?ts=838455" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration_fine/dqn_rff_5_loss.png?ts=221713" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
+$\sigma=5$
 ```
 Avg return for DQN+RFF (sigma 5) is 6.20269516281626
 ```
