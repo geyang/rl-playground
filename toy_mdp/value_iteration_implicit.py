@@ -12,7 +12,7 @@ from tqdm import trange
 class Q_implicit(nn.Module):
     def __init__(self, state_dim, action_dim, rff=False, B_scale=None):
         """Assumes discrete actions"""
-        super(Q_implicit, self).__init__()
+        super().__init__()
         self.state_dim = state_dim
         self.action_dim = action_dim
 
@@ -42,12 +42,13 @@ class Q_implicit(nn.Module):
 
     def forward(self, states):
         batch_size = states.shape[0]
-        value_lst =  []
+        value_lst = []
         for act in range(self.action_dim):
-            actions = act*torch.ones((batch_size, self.action_dim))
+            actions = act * torch.ones((batch_size, self.action_dim))
             values = self.Q(torch.cat([states, actions], dim=1))
             value_lst.append(values)
         return torch.cat(value_lst, dim=1)
+
 
 def plot_value(states, q_values, losses, fig_prefix, title=None, doc=doc):
     plt.plot(states, q_values[0], label="action 1")
@@ -214,11 +215,7 @@ if __name__ == "__main__":
     """
 
     with doc:
-        def get_Q_mlp():
-            return Q_implicit(state_dim=1, action_dim=2)
-
-
-        Q = get_Q_mlp()
+        Q = Q_implicit(state_dim=1, action_dim=2)
         q_values, losses = perform_deep_vi(Q, states, rewards, dyn_mats)
         returns = eval_q_policy(Q)
         doc.print(f"Avg return for DQN is {returns}")
@@ -235,7 +232,7 @@ if __name__ == "__main__":
     with 20 states, and even less so with 200.
     """
     with doc:
-        Q = get_Q_mlp()
+        Q = Q_implicit(state_dim=1, action_dim=2)
         q_values, losses = supervised(Q, states, gt_q_values, n_epochs=2000)
         returns = eval_q_policy(Q)
 
@@ -251,11 +248,7 @@ if __name__ == "__main__":
     replace the input layer with RFF embedding.
     """
     with doc:
-        def get_Q_rff(B_scale):
-            return Q_implicit(state_dim=1, action_dim=2, rff=True, B_scale=B_scale)
-
-
-        Q = get_Q_rff(B_scale=10)
+        Q = Q_implicit(state_dim=1, action_dim=2, rff=True, B_scale=10)
         q_values, losses = supervised(Q, states, gt_q_values)
         returns = eval_q_policy(Q)
 
@@ -269,7 +262,7 @@ if __name__ == "__main__":
     We can now apply this to DQN and it works right away! Using scale of 10
     """
     with doc:
-        Q = get_Q_rff(B_scale=10)
+        Q = Q_implicit(state_dim=1, action_dim=2, rff=True, B_scale=10)
         q_values, losses = perform_deep_vi(Q, states, rewards, dyn_mats, )
         returns = eval_q_policy(Q)
 
@@ -284,7 +277,7 @@ if __name__ == "__main__":
     Setting the target network to off
     """
     with doc:
-        Q = get_Q_rff(B_scale=10)
+        Q = Q_implicit(state_dim=1, action_dim=2, rff=True, B_scale=10)
         q_values, losses = perform_deep_vi(Q, states, rewards, dyn_mats, target_freq=None)
         returns = eval_q_policy(Q)
 
@@ -298,7 +291,7 @@ if __name__ == "__main__":
     """
     for sigma in [1, 3, 5]:
         r = doc.table().figure_row()
-        Q = get_Q_rff(B_scale=sigma)
+        Q = Q_implicit(state_dim=1, action_dim=2, rff=True, B_scale=sigma)
         q_values, losses = perform_deep_vi(Q, states, rewards, dyn_mats)
         returns = eval_q_policy(Q)
 
