@@ -277,6 +277,10 @@ def perform_deep_vi_lff_mlp(states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epo
         optim.step()
 
     q_values = Q(states).T.detach().numpy()
+    returns = eval_q_policy(Q)
+
+    print(f"Avg returns is {returns}")
+
     return q_values, *stats.values()
 
 

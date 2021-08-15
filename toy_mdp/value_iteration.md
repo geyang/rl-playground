@@ -12,7 +12,7 @@ mdp = RandMDP(seed=0, option='fixed')
 states, rewards, dyn_mats = mdp.get_discrete_mdp(num_states=num_states)
 q_values, losses = perform_vi(states, rewards, dyn_mats)
 ```
-| <img style="align-self:center; zoom:0.3;" src="value_iteration/value_iteration.png?ts=330374" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration/value_iteration_loss.png?ts=885452" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration/value_iteration.png?ts=437203" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration/value_iteration_loss.png?ts=834097" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
 
@@ -24,7 +24,7 @@ Here we plot the value function learned via deep Q Learning
 ```python
 q_values, losses = perform_deep_vi(states, rewards, dyn_mats)
 ```
-| <img style="align-self:center; zoom:0.3;" src="value_iteration/dqn.png?ts=736278" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration/dqn_loss.png?ts=447630" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration/dqn.png?ts=002675" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration/dqn_loss.png?ts=395483" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
 
@@ -38,7 +38,7 @@ with 20 states, and even less so with 200.
 ```python
 q_values, losses = supervised(states, gt_q_values, dyn_mats)
 ```
-| <img style="align-self:center; zoom:0.3;" src="value_iteration/supervised.png?ts=382994" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration/supervised_loss.png?ts=832970" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration/supervised.png?ts=058338" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration/supervised_loss.png?ts=466929" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
 
@@ -50,7 +50,7 @@ replace the input layer with RFF embedding.
 ```python
 q_values, losses = supervised_rff(states, gt_q_values, dyn_mats, B_scale=10)
 ```
-| <img style="align-self:center; zoom:0.3;" src="value_iteration/supervised_over_param.png?ts=826609" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration/supervised_over_param_loss.png?ts=473657" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration/supervised_over_param.png?ts=458496" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration/supervised_over_param_loss.png?ts=896356" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
 
@@ -61,7 +61,7 @@ We can now apply this to DQN and it works right away!
 ```python
 q_values, losses = perform_deep_vi_rff(states, rewards, dyn_mats, n_epochs=500, B_scale=10)
 ```
-| <img style="align-self:center; zoom:0.3;" src="value_iteration/dqn_over_param.png?ts=089987" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration/dqn_over_param_loss.png?ts=642478" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration/dqn_over_param.png?ts=603887" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration/dqn_over_param_loss.png?ts=945961" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|
 
 
@@ -73,5 +73,5 @@ Try removing the target network
 q_values, losses = perform_deep_vi_rff(states, rewards, dyn_mats, n_epochs=500, B_scale=10,
                                        target_freq=None)
 ```
-| <img style="align-self:center; zoom:0.3;" src="value_iteration/dqn_over_param_no_target.png?ts=670431" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration/dqn_over_param_no_target_loss.png?ts=124857" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
+| <img style="align-self:center; zoom:0.3;" src="value_iteration/dqn_over_param_no_target.png?ts=568546" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> | <img style="align-self:center; zoom:0.3;" src="value_iteration/dqn_over_param_no_target_loss.png?ts=972447" image="None" styles="{'margin': '0.5em'}" width="None" height="None" dpi="300"/> |
 |:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|:--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------:|

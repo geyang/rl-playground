@@ -80,7 +80,7 @@ def supervised(Q, states, values, lr=1e-4, n_epochs=100):
     return q_values, losses
 
 
-def perform_deep_vi(Q, states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=400, target_freq=1):
+def perform_deep_vi(Q, states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=400, target_freq=10):
     # Ge: need to initialize the Q function at zero
     Q_target = deepcopy(Q) if target_freq else Q
 
@@ -232,7 +232,6 @@ if __name__ == "__main__":
                 nn.ReLU(),
                 nn.Linear(400, 2),
             )
-
 
         Q = get_Q_rff(B_scale=10)
         q_values, losses = supervised(Q, states, gt_q_values)

@@ -78,7 +78,7 @@ def supervised(states, values, dyn_mats, lr=4e-4, gamma=0.9, n_epochs=100):
     return q_values, losses
 
 
-def perform_deep_vi(states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=400):
+def perform_deep_vi(states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=400, target_freq=10):
     # Ge: need to initialize the Q function at zero
     Q = nn.Sequential(
         nn.Linear(1, 400),
@@ -103,7 +103,7 @@ def perform_deep_vi(states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=400)
     losses = []
 
     for epoch in trange(n_epochs + 1):
-        if epoch % 1 == 0:
+        if epoch % target_freq == 0:
             Q_target.load_state_dict(Q.state_dict())
 
         q_max, actions = Q_target(states).max(dim=-1)
@@ -166,7 +166,7 @@ def supervised_rff(states, values, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=100, B
     return q_values, losses
 
 
-def perform_deep_vi_rff(states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=400, B_scale=1, target_freq=1):
+def perform_deep_vi_rff(states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=400, B_scale=1, target_freq=10):
     # Ge: need to initialize the Q function at zero
     Q = nn.Sequential(
         RFF(1, 200, scale=B_scale),
