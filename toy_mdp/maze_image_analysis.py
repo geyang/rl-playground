@@ -146,7 +146,7 @@ def perform_deep_vi(Q, rewards, dyn_mats, dones, lr=1e-4, gamma=0.99, n_epochs=4
             Q_target.load_state_dict(Q.state_dict())
 
         q_max, actions = Q_target(states).max(dim=1)
-        td_target = rewards + gamma * dones * (dyn_mats @ q_max.detach())
+        td_target = rewards + gamma * (1-dones) * (dyn_mats @ q_max.detach())
         td_loss = l1(Q(states), td_target.T)
         losses.append(td_loss.detach().numpy())
 
@@ -208,7 +208,9 @@ if __name__ == "__main__":
         def get_Q_mlp():
             return nn.Sequential(
                 Lambda(lambda x: x / 255),
-                RFF(3, 8, 3, stride=1),
+                # RFF(3, 8, 3, stride=1),
+                nn.Conv2d(3, 8, 3, stride=1),
+                nn.ReLU(),
                 nn.Conv2d(8, 8, 3, stride=1),
                 nn.ReLU(),
                 nn.Conv2d(8, 8, 3, stride=1),
@@ -223,7 +225,7 @@ if __name__ == "__main__":
 
 
         Q = get_Q_mlp()
-        q_values, losses = perform_deep_vi(Q, rewards, dyn_mats, dones, n_epochs=10000)
+        q_values, losses = perform_deep_vi(Q, rewards, dyn_mats, dones, n_epochs=1500)
         returns = eval_q_policy(Q)
         doc.print(f"Avg return for DQN is {returns}")
 
