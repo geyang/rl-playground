@@ -9,7 +9,7 @@ from cmx import doc
 from tqdm import trange
 
 
-def plot_value(states, q_values, losses, *std_mean, fig_prefix, title=None, doc=doc):
+def plot_value(states, q_values, fig_prefix, title=None, doc=doc):
     plt.plot(states, q_values[0], label="action 1")
     plt.plot(states, q_values[1], label="action 2")
     if title:
@@ -20,16 +20,25 @@ def plot_value(states, q_values, losses, *std_mean, fig_prefix, title=None, doc=
     doc.savefig(f'{os.path.basename(__file__)[:-3]}/{fig_prefix}.png?ts={doc.now("%f")}', dpi=300, zoom=0.3)
     plt.close()
 
-    for loss, plot_title in zip([losses, *std_mean], ['loss', 'stddev', 'mean']):
-        plt.plot(loss)
-        if plot_title == "loss":
-            plt.hlines(0, 0, len(losses), linestyle='--', color='gray')
-        plt.title(plot_title.capitalize())
-        plt.xlabel('Optimization Steps')
-        doc.savefig(f'{os.path.basename(__file__)[:-3]}/{fig_prefix}_{plot_title}.png?ts={doc.now("%f")}', dpi=300,
-                    zoom=0.3)
-        plt.close()
+def eval_q_policy(q, num_eval=100):
+    """Assumes discrete action such that policy is derived by argmax a Q(s,a)"""
+    from rand_mdp import RandMDP
+    torch.manual_seed(0)
+    env = RandMDP(seed=0, option='fixed')
+    returns = []
 
+    for i in range(num_eval):
+        done = False
+        obs = env.reset()
+        total_rew = 0
+        while not done:
+            obs = torch.FloatTensor(obs).unsqueeze(-1)
+            q_max, action = q(obs).max(dim=-1)
+            obs, rew, done, _ = env.step(action.item())
+            total_rew += rew
+        returns.append(total_rew)
+
+    return np.mean(returns)
 
 def perform_vi(states, rewards, dyn_mats, gamma=0.9, eps=1e-5):
     # Assume discrete actions and states
@@ -235,7 +244,11 @@ def perform_deep_vi_rff(states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=
         optim.step()
 
     q_values = Q(states).T.detach().numpy()
-    return q_values, losses
+    returns = eval_q_policy(Q)
+
+    print(f"Avg returns is {returns}")
+
+    return q_values
 
 
 def perform_deep_vi_lff_mlp(states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epochs=400, B_scale=1, target_freq=1,
@@ -281,7 +294,7 @@ def perform_deep_vi_lff_mlp(states, rewards, dyn_mats, lr=1e-4, gamma=0.9, n_epo
 
     print(f"Avg returns is {returns}")
 
-    return q_values, *stats.values()
+    return q_values
 
 
 def supervised_lff_mlp(states, values, lr=1e-4, n_epochs=400, B_scale=1, latent_scale=1, latent_dim=400):
@@ -340,36 +353,8 @@ if __name__ == "__main__":
 
     gt_q_values = q_values  # used later
 
-    plot_value(states, q_values, losses, fig_prefix="value_iteration",
+    plot_value(states, q_values, fig_prefix="value_iteration",
                title="Value Iteration on Toy MDP", doc=doc.table().figure_row())
-
-    doc @ """
-    # Supervised Learning with Learned Random Fourier Features (LFF)
-    
-    The random matrix simply does not update that much!
-    """
-    with doc, doc.table() as table:
-        for dim, n_epochs in zip([24, 50, 100, 200, 400, 800, 1600], [4000, 2000, 500, 250, 100, 100, 100]):
-            r = table.figure_row()
-            all_losses = {}
-            for scale in [0.1, 1, 10, 20]:
-                q_values, losses, B_stds, B_means = supervised_lff_mlp(states, gt_q_values, B_scale=8,
-                                                                       n_epochs=n_epochs, latent_dim=dim,
-                                                                       latent_scale=scale)
-                plt.figure('losses')
-                plt.plot(losses, label=f"scale={scale}")
-
-                plt.figure(f'scale {scale}')
-                plt.plot(states, q_values[0], label="action 1")
-                plt.plot(states, q_values[1], label="action 2")
-                r.savefig(os.path.basename(__file__)[:-3] + f"/supervised_lff_mlp_dim-{dim}_sig-{scale}.png",
-                          title=f"dim={dim} $\sigma={scale}$" if scale == 0.1 else f"$\sigma={scale}$")
-                plt.close()
-
-            plt.figure('losses')
-            plt.legend(frameon=False)
-            r.savefig(os.path.basename(__file__)[:-3] + f"/supervised_lff_mlp_loss_dim-{dim}_sig-{scale}.png")
-            plt.close()
 
     doc @ """
     ## DQN w/ LFF
@@ -379,8 +364,22 @@ if __name__ == "__main__":
     """
 
     with doc:
-        q_values, losses, B_stds, B_means = perform_deep_vi_lff_mlp(states, rewards, dyn_mats, B_scale=8, n_epochs=100)
+        q_values = perform_deep_vi_lff_mlp(states, rewards, dyn_mats, B_scale=8, n_epochs=200)
 
-    plot_value(states, q_values, losses, B_stds, B_means, fig_prefix="dqn_lff_mlp", title="DQN w/ LFF",
+    plot_value(states, q_values, fig_prefix="dqn_lff_mlp", title="DQN w/ LFF",
                doc=doc.table().figure_row())
+
+    doc @ """
+    ## DQN w/ RFF
+
+    Here we plot the value function learned via deep Q Learning (DQN) using a random
+    fourier feature network.
+    """
+
+    with doc:
+        q_values = perform_deep_vi_rff(states, rewards, dyn_mats, B_scale=10, n_epochs=200)
+
+    plot_value(states, q_values, fig_prefix="dqn_rff_mlp", title="DQN w/ RFF",
+               doc=doc.table().figure_row())
+
     doc.flush()

@@ -4,11 +4,33 @@ from copy import deepcopy
 import gym
 import gym_maze
 import numpy as np
+import cv2
 import torch
 import torch.nn as nn
 import torch.optim
 from cmx import doc
 from tqdm import trange
+
+class Lambda(nn.Module):
+    def __init__(self, fn):
+        super().__init__()
+        self.fn = fn
+
+    def forward(self, *args, **kwargs):
+        return self.fn(*args, **kwargs)
+
+
+class View(nn.Module):
+    def __init__(self, *dims, batch_first=True):
+        super().__init__()
+        self.batch_first = batch_first
+        self.dims = dims
+
+    def forward(self, x):
+        if self.batch_first:
+            return x.view(-1, *self.dims)
+        else:
+            return x.view(*self.dims)
 
 def plot_value(q_values, losses, fig_prefix, title=None, doc=doc):
     values = q_values.max(axis=0)
@@ -75,20 +97,10 @@ def perform_vi(rewards, dyn_mats, dones, gamma=0.99, eps=1e-5):
 
     return q_values, deltas
 
-class Q_table_wrapper:
-    def __init__(self, q_vals):
-        self.q_vals = q_vals
-
-    def __call__(self, state):
-        state = state.cpu().numpy().flatten()
-        # Normalizing it back
-        state = 4*state
-        idx = int(state_to_id(state))
-        return torch.FloatTensor(self.q_vals[:, idx])
-
 class LFF(nn.Module):
-    def __init__(self, input_dim, mapping_size, scale=1.0):
+    def __init__(self, input_feats, output_feat, kernel_dim,  stride, scale=1.0):
         super().__init__()
+        self.conv = nn.Conv2d(3, 8, 3, stride=1)
         self.input_dim = input_dim
         self.output_dim = mapping_size * 2
         self.linear = nn.Linear(input_dim, self.output_dim)
@@ -105,18 +117,28 @@ class RFF(LFF):
         super().__init__(input_dim, mapping_size, scale=scale)
         self.linear.requires_grad = False
 
-def perform_deep_vi(Q, rewards, dyn_mats, dones, lr=1e-4, gamma=0.99, n_epochs=400, target_freq=10):
+def perform_deep_vi(Q, rewards, dyn_mats, dones, lr=1e-4, gamma=0.99, n_epochs=400, target_freq=50):
     Q_target = deepcopy(Q) if target_freq else Q
-
+    env = gym.make('maze-v0')
+    env.reset()
     optim = torch.optim.RMSprop(Q.parameters(), lr=lr)
     l1 = nn.functional.smooth_l1_loss
 
-    # Normalized state
-    states = np.array([[x/4.0, y/4.0] for x in range(5) for y in range(5)])
+    states = []
+    for x in range(5):
+        for y in range(5):
+            env.reset_state(np.array([x, y]))
+            state = env.render()
+            state = cv2.resize(state, dsize=(64, 64), interpolation=cv2.INTER_AREA)
+            state = np.transpose(state, (2, 0, 1))
+            states.append(state)
+
+    del(env)
+    states = np.array(states)
     states = torch.FloatTensor(states)
     rewards = torch.FloatTensor(rewards)
-    dyn_mats = torch.FloatTensor(dyn_mats)
     dones = torch.FloatTensor(dones)
+    dyn_mats = torch.FloatTensor(dyn_mats)
 
     losses = []
 
@@ -124,8 +146,8 @@ def perform_deep_vi(Q, rewards, dyn_mats, dones, lr=1e-4, gamma=0.99, n_epochs=4
         if target_freq and epoch % target_freq == 0:
             Q_target.load_state_dict(Q.state_dict())
 
-        q_max, actions = Q_target(states).max(dim=-1)
-        td_target = rewards + gamma * (1-dones) * (dyn_mats @ q_max.detach())
+        q_max, actions = Q_target(states).max(dim=1)
+        td_target = rewards + gamma * dones * (dyn_mats @ q_max.detach())
         td_loss = l1(Q(states), td_target.T)
         losses.append(td_loss.detach().numpy())
 
@@ -135,12 +157,7 @@ def perform_deep_vi(Q, rewards, dyn_mats, dones, lr=1e-4, gamma=0.99, n_epochs=4
 
     q_values = Q(states).T.detach().numpy()
     return q_values, losses
-#
-#
-# def kernel_Q(q_values, states):
-#     pass
-#
-#
+
 def eval_q_policy(q, num_eval=100):
     """Assumes discrete action such that policy is derived by argmax a Q(s,a)"""
     torch.manual_seed(0)
@@ -149,12 +166,18 @@ def eval_q_policy(q, num_eval=100):
 
     for i in range(num_eval):
         done = False
-        obs = env.reset()
+        env.reset()
+        obs = env.render()
+        obs = cv2.resize(obs, dsize=(64, 64), interpolation=cv2.INTER_AREA)
+        obs = np.transpose(obs, (2, 0, 1))
         total_rew = 0
         while not done:
-            obs = torch.FloatTensor(obs/4.0).unsqueeze(0)
+            obs = torch.FloatTensor(obs).unsqueeze(0)
             q_max, action = q(obs).max(dim=-1)
             obs, rew, done, _ = env.step(action.item())
+            obs = env.render()
+            obs = cv2.resize(obs, dsize=(64, 64), interpolation=cv2.INTER_AREA)
+            obs = np.transpose(obs, (2, 0, 1))
             total_rew += rew
         returns.append(total_rew)
 
@@ -174,15 +197,6 @@ if __name__ == "__main__":
     with doc:
         torch.manual_seed(0)
         rewards, dones, dyn_mats = get_discrete_mdp()
-        q_values, losses = perform_vi(rewards, dyn_mats, dones)
-
-    plot_value(q_values, losses, fig_prefix="value_iteration", title="Value Iteration on Maze", doc=doc.table().figure_row())
-
-    with doc:
-        mean_reward = eval_q_policy(Q_table_wrapper(q_values))
-        doc.print(f"Return with ground truth q function is {mean_reward}")
-
-    gt_q_values = q_values  # used later
 
     doc @ """
     ## DQN w/ Function Approximator
@@ -194,11 +208,15 @@ if __name__ == "__main__":
     with doc:
         def get_Q_mlp():
             return nn.Sequential(
-                nn.Linear(2, 400),
+                Lambda(lambda x: x / 255),
+                nn.Conv2d(3, 8, 3, stride=1),
                 nn.ReLU(),
-                nn.Linear(400, 400),
+                nn.Conv2d(8, 8, 3, stride=1),
                 nn.ReLU(),
-                nn.Linear(400, 400),
+                nn.Conv2d(8, 8, 3, stride=1),
+                nn.ReLU(),
+                View(8*58*58),
+                nn.Linear(8*58*58, 400),
                 nn.ReLU(),
                 nn.Linear(400, 400),
                 nn.ReLU(),
@@ -207,45 +225,45 @@ if __name__ == "__main__":
 
 
         Q = get_Q_mlp()
-        q_values, losses = perform_deep_vi(Q, rewards, dyn_mats, dones, n_epochs=400)
+        q_values, losses = perform_deep_vi(Q, rewards, dyn_mats, dones, n_epochs=10000)
         returns = eval_q_policy(Q)
         doc.print(f"Avg return for DQN is {returns}")
 
     plot_value(q_values, losses, fig_prefix="dqn", title="DQN on Maze", doc=doc.table().figure_row())
 
-    with doc:
-        Q = get_Q_mlp()
-        q_values, losses = perform_deep_vi(Q, rewards, dyn_mats, dones, n_epochs=4000)
-        returns = eval_q_policy(Q)
-        doc.print(f"Avg return for DQN (4000 epochs) is {returns}")
-
-    plot_value(q_values, losses, fig_prefix="dqn_2000", title="DQN on Maze (4000 epochs)", doc=doc.table().figure_row())
-
-    with doc:
-        def get_Q_rff(B_scale):
-            return nn.Sequential(
-                RFF(2, 200, scale=B_scale),
-                nn.Linear(400, 400),
-                nn.ReLU(),
-                nn.Linear(400, 400),
-                nn.ReLU(),
-                nn.Linear(400, 400),
-                nn.ReLU(),
-                nn.Linear(400, 4),
-            )
-
-    doc @ """
-    ## DQN with RFF
-
-    We can now apply this to DQN and it works right away! Using scale of 5
-    """
-    with doc:
-        b_scale = 1
-        Q = get_Q_rff(B_scale=b_scale)
-        q_values, losses = perform_deep_vi(Q, rewards, dyn_mats, dones, n_epochs=400)
-        returns = eval_q_policy(Q)
-
-        doc.print(f"Avg return for DQN+RFF is {returns}")
-
-    plot_value(q_values, losses, fig_prefix=f"dqn_rff_{b_scale}", title=f"DQN RFF $\sigma={b_scale}$", doc=doc.table().figure_row())
-    doc.flush()
+    # with doc:
+    #     Q = get_Q_mlp()
+    #     q_values, losses = perform_deep_vi(Q, rewards, dyn_mats, n_epochs=4000)
+    #     returns = eval_q_policy(Q)
+    #     doc.print(f"Avg return for DQN (4000 epochs) is {returns}")
+    #
+    # plot_value(q_values, losses, fig_prefix="dqn_2000", title="DQN on Maze (4000 epochs)", doc=doc.table().figure_row())
+    #
+    # with doc:
+    #     def get_Q_rff(B_scale):
+    #         return nn.Sequential(
+    #             RFF(2, 200, scale=B_scale),
+    #             nn.Linear(400, 400),
+    #             nn.ReLU(),
+    #             nn.Linear(400, 400),
+    #             nn.ReLU(),
+    #             nn.Linear(400, 400),
+    #             nn.ReLU(),
+    #             nn.Linear(400, 4),
+    #         )
+    #
+    # doc @ """
+    # ## DQN with RFF
+    #
+    # We can now apply this to DQN and it works right away! Using scale of 5
+    # """
+    # with doc:
+    #     b_scale = 1
+    #     Q = get_Q_rff(B_scale=b_scale)
+    #     q_values, losses = perform_deep_vi(Q, rewards, dyn_mats, n_epochs=400)
+    #     returns = eval_q_policy(Q)
+    #
+    #     doc.print(f"Avg return for DQN+RFF is {returns}")
+    #
+    # plot_value(q_values, losses, fig_prefix=f"dqn_rff_{b_scale}", title=f"DQN RFF $\sigma={b_scale}$", doc=doc.table().figure_row())
+    # doc.flush()
