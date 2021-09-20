@@ -98,24 +98,23 @@ def perform_vi(rewards, dyn_mats, dones, gamma=0.99, eps=1e-5):
     return q_values, deltas
 
 class LFF(nn.Module):
-    def __init__(self, input_feats, output_feat, kernel_dim,  stride, scale=1.0):
+    def __init__(self, input_feats, output_feats, kernel_dim,  stride, scale=1.0):
         super().__init__()
-        self.conv = nn.Conv2d(3, 8, 3, stride=1)
-        self.input_dim = input_dim
-        self.output_dim = mapping_size * 2
-        self.linear = nn.Linear(input_dim, self.output_dim)
-        nn.init.uniform_(self.linear.weight, -scale / self.input_dim, scale / self.input_dim)
-        nn.init.uniform_(self.linear.bias, -1, 1)
+        self.in_features = input_feats
+        self.out_features = output_feats
+        self.conv = nn.Conv2d(input_feats, output_feats, kernel_dim, stride=stride)
+        nn.init.uniform_(self.conv.weight, -scale / (input_feats*kernel_dim*kernel_dim), scale / (input_feats*kernel_dim*kernel_dim))
+        nn.init.uniform_(self.conv.bias, -1, 1)
 
     def forward(self, x):
-        x = self.linear(x)
-        return torch.sin(2 * np.pi * x)
+        x = self.conv(np.pi * x)
+        return torch.sin(x)
 
 
 class RFF(LFF):
-    def __init__(self, input_dim, mapping_size, scale=1):
-        super().__init__(input_dim, mapping_size, scale=scale)
-        self.linear.requires_grad = False
+    def __init__(self, input_feats, output_feats, kernel_dim,  stride, scale=1.0):
+        super().__init__(input_feats, output_feats, kernel_dim,  stride, scale)
+        self.conv.requires_grad = False
 
 def perform_deep_vi(Q, rewards, dyn_mats, dones, lr=1e-4, gamma=0.99, n_epochs=400, target_freq=50):
     Q_target = deepcopy(Q) if target_freq else Q
@@ -209,8 +208,7 @@ if __name__ == "__main__":
         def get_Q_mlp():
             return nn.Sequential(
                 Lambda(lambda x: x / 255),
-                nn.Conv2d(3, 8, 3, stride=1),
-                nn.ReLU(),
+                RFF(3, 8, 3, stride=1),
                 nn.Conv2d(8, 8, 3, stride=1),
                 nn.ReLU(),
                 nn.Conv2d(8, 8, 3, stride=1),
